@@ -154,12 +154,12 @@ end)
 
 
 -- ==========================================
--- 2. LOGIKA TREASURE HUNTER (WITH HOME POS)
+-- 2. LOGIKA TREASURE HUNTER (WITH HOME POS & AUTO PAN FIX)
 -- ==========================================
 local TreasureHunter = {
     isHunting = false,
     mapsCompleted = 0,
-    homeCFrame = nil -- Variabel global buat nyimpen Home
+    homeCFrame = nil 
 }
 
 function TreasureHunter.UpdateStatus(text)
@@ -209,6 +209,52 @@ function TreasureHunter.getPan()
         end
     end
     return nil
+end
+
+-- Fungsi baru buat nyari dan nge-reset Auto Pan
+function TreasureHunter.ResetAutoPan()
+    local playerGui = Player:FindFirstChild("PlayerGui")
+    if not playerGui then return end
+
+    -- Cari tombol ke akar-akarnya
+    local function findButton(parent)
+        for _, child in ipairs(parent:GetChildren()) do
+            if child:IsA("GuiButton") then 
+                local text = child:IsA("TextButton") and string.lower(child.Text) or ""
+                local name = string.lower(child.Name)
+                
+                if string.find(text, "auto pan") or string.find(name, "autopan") or string.find(name, "autodig") then
+                    return child
+                end
+            end
+            local found = findButton(child)
+            if found then return found end
+        end
+        return nil
+    end
+
+    local autoPanBtn = findButton(playerGui)
+    if autoPanBtn then
+        print("[TreasureHunter] Nemu tombol Auto Pan! Mereset (Off -> On)...")
+        pcall(function()
+            -- Mayoritas executor mobile support firesignal atau getconnections
+            if firesignal then
+                firesignal(autoPanBtn.MouseButton1Click)
+                task.wait(0.5)
+                firesignal(autoPanBtn.MouseButton1Click)
+            elseif getconnections then
+                for _, conn in ipairs(getconnections(autoPanBtn.MouseButton1Click)) do
+                    conn:Function()
+                end
+                task.wait(0.5)
+                for _, conn in ipairs(getconnections(autoPanBtn.MouseButton1Click)) do
+                    conn:Function()
+                end
+            end
+        end)
+    else
+        warn("[TreasureHunter] Tombol Auto Pan ga ketemu! Mungkin namanya beda di dalem gamenya.")
+    end
 end
 
 function TreasureHunter.huntSingleMap(map)
@@ -289,10 +335,17 @@ function TreasureHunter.huntSingleMap(map)
     humanoid.WalkSpeed = oldWalkSpeed
     humanoid.JumpPower = oldJumpPower
     
-    -- TELEPORT BALIK KE HOME (Kalo udah di set)
+    -- TELEPORT BALIK KE HOME (Maksa 3x biar server pasrah dan ga narik balik)
     if TreasureHunter.homeCFrame then
-        hrp.CFrame = TreasureHunter.homeCFrame
+        for i = 1, 3 do
+            hrp.CFrame = TreasureHunter.homeCFrame
+            task.wait(0.1)
+        end
     end
+
+    -- RESET AUTO PAN BILA PERLU (Jeda bentar nunggu karakternya napak di home)
+    task.wait(0.5)
+    TreasureHunter.ResetAutoPan()
 
     return success
 end
@@ -301,7 +354,6 @@ function TreasureHunter.Start()
     if TreasureHunter.isHunting then return end
     TreasureHunter.isHunting = true
     
-    -- Kalo Home belum di-set manual, auto-save posisi sekarang biar ga nyasar
     if not TreasureHunter.homeCFrame then
         local char = Player.Character
         if char and char:FindFirstChild("HumanoidRootPart") then
@@ -343,6 +395,7 @@ function TreasureHunter.Stop()
     TreasureHunter.UpdateStatus("Status: Stopping...")
 end
 
+        
 -- ==========================================
 -- 3. KONEKSI TOMBOL UTAMA
 -- ==========================================
