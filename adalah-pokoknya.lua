@@ -9,9 +9,8 @@ local Player = Players.LocalPlayer
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "TreasureHunterGUI"
 ScreenGui.ResetOnSpawn = false
-ScreenGui.IgnoreGuiInset = true -- Biar aman di HP ga kena poni layar
+ScreenGui.IgnoreGuiInset = true 
 
--- Bypass masukin GUI (Support HP Executor)
 local function ParentGUI()
     local success, target = pcall(function() return gethui() end)
     if success and target then
@@ -26,10 +25,10 @@ local function ParentGUI()
 end
 ParentGUI()
 
--- Frame Utama
+-- Frame Utama (Tingginya gw tambahin jadi 180 biar muat tombol Set Home)
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 250, 0, 140)
-MainFrame.Position = UDim2.new(0.5, -125, 0.5, -70)
+MainFrame.Size = UDim2.new(0, 250, 0, 180) 
+MainFrame.Position = UDim2.new(0.5, -125, 0.5, -90)
 MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -62,7 +61,6 @@ UserInputService.InputEnded:Connect(function(input)
     end
 end)
 
--- Elemen UI di MainFrame
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 30)
 Title.BackgroundTransparency = 1
@@ -81,6 +79,17 @@ Status.TextColor3 = Color3.fromRGB(200, 200, 200)
 Status.Font = Enum.Font.Gotham
 Status.TextSize = 13
 Status.Parent = MainFrame
+
+-- Tombol SET HOME Baru
+local SetHomeBtn = Instance.new("TextButton")
+SetHomeBtn.Size = UDim2.new(1, -30, 0, 30)
+SetHomeBtn.Position = UDim2.new(0, 15, 1, -85) -- Posisinya di atas Start & Stop
+SetHomeBtn.BackgroundColor3 = Color3.fromRGB(60, 120, 210)
+SetHomeBtn.Text = "SET HOME POS"
+SetHomeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+SetHomeBtn.Font = Enum.Font.GothamBold
+SetHomeBtn.Parent = MainFrame
+Instance.new("UICorner", SetHomeBtn).CornerRadius = UDim.new(0, 6)
 
 local StartBtn = Instance.new("TextButton")
 StartBtn.Size = UDim2.new(0, 100, 0, 35)
@@ -122,19 +131,17 @@ MinimizeBtn.Font = Enum.Font.GothamBold
 MinimizeBtn.Parent = MainFrame
 Instance.new("UICorner", MinimizeBtn).CornerRadius = UDim.new(0, 5)
 
--- Tombol Open (Buat buka pas lagi di-minimize)
 local OpenBtn = Instance.new("TextButton")
 OpenBtn.Size = UDim2.new(0, 45, 0, 45)
-OpenBtn.Position = UDim2.new(0, 15, 0.5, -22) -- Di pinggir kiri layar
+OpenBtn.Position = UDim2.new(0, 15, 0.5, -22)
 OpenBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 OpenBtn.Text = "🗺️"
 OpenBtn.TextSize = 20
-OpenBtn.Visible = false -- Awalnya disembunyiin
+OpenBtn.Visible = false
 OpenBtn.Parent = ScreenGui
-Instance.new("UICorner", OpenBtn).CornerRadius = UDim.new(1, 0) -- Bikin bulet
+Instance.new("UICorner", OpenBtn).CornerRadius = UDim.new(1, 0)
 Instance.new("UIStroke", OpenBtn).Color = Color3.fromRGB(255, 255, 255)
 
--- Logic Buka-Tutup (Minimize/Maximize)
 MinimizeBtn.MouseButton1Click:Connect(function()
     MainFrame.Visible = false
     OpenBtn.Visible = true
@@ -147,11 +154,12 @@ end)
 
 
 -- ==========================================
--- 2. LOGIKA TREASURE HUNTER (ANTI-FLICKER)
+-- 2. LOGIKA TREASURE HUNTER (WITH HOME POS)
 -- ==========================================
 local TreasureHunter = {
     isHunting = false,
-    mapsCompleted = 0
+    mapsCompleted = 0,
+    homeCFrame = nil -- Variabel global buat nyimpen Home
 }
 
 function TreasureHunter.UpdateStatus(text)
@@ -203,9 +211,8 @@ function TreasureHunter.getPan()
     return nil
 end
 
-function TreasureHunter.huntSingleMap(map, savedCFrame)
+function TreasureHunter.huntSingleMap(map)
     local character = Player.Character
-    -- Ditambahin ngecek Humanoid biar bisa ngatur speed
     if not character or not character:FindFirstChild("HumanoidRootPart") or not character:FindFirstChild("Humanoid") then 
         warn("[TreasureHunter] Gagal: Tidak ada karakter/Humanoid")
         return false 
@@ -220,7 +227,6 @@ function TreasureHunter.huntSingleMap(map, savedCFrame)
     end
 
     local targetPosition = typeof(location) == "CFrame" and location.Position or location
-    -- Y offset kita kurangin jadi 2.5 biar karakternya napak tanah, ga melayang
     local targetCFrame = CFrame.new(targetPosition + Vector3.new(0, 2.5, 0))
 
     local pan = TreasureHunter.getPan()
@@ -236,7 +242,6 @@ function TreasureHunter.huntSingleMap(map, savedCFrame)
 
     TreasureHunter.UpdateStatus("Status: Digging...")
 
-    -- AWAL GALI: Bikin napak tapi gabisa gerak
     hrp.CFrame = targetCFrame
     local oldWalkSpeed = humanoid.WalkSpeed
     local oldJumpPower = humanoid.JumpPower
@@ -264,17 +269,12 @@ function TreasureHunter.huntSingleMap(map, savedCFrame)
             break
         end
 
-        -- Trik anti-flicker tanpa Anchor: 
-        -- Cek kalo karakter lu kegeser lebih dari 3 stud (ditarik server), baru kita paksa balik posisinya.
-        -- Kalo ga kegeser jauh, biarin aja dia napak natural.
         if (hrp.Position - targetPosition).Magnitude > 3 then
             hrp.CFrame = targetCFrame
         end
 
-        -- Tahan velocity X dan Z biar ga licin/geser-geser sendiri, tapi Y tetep ada biar jatoh (napak)
         hrp.Velocity = Vector3.new(0, hrp.Velocity.Y, 0)
 
-        -- Gali tiap 0.2 detik
         if tick() - lastCollectTime > 0.2 then
             pcall(function()
                 collectScript:InvokeServer(0)
@@ -285,13 +285,13 @@ function TreasureHunter.huntSingleMap(map, savedCFrame)
         task.wait(0.05)
     end
 
-    -- CLEANUP KELAR GALI: Balikin speed sama bisa lompat lagi
+    -- Balikin movement
     humanoid.WalkSpeed = oldWalkSpeed
     humanoid.JumpPower = oldJumpPower
     
-    -- Teleport balik ke koordinat awal
-    if savedCFrame then
-        hrp.CFrame = savedCFrame
+    -- TELEPORT BALIK KE HOME (Kalo udah di set)
+    if TreasureHunter.homeCFrame then
+        hrp.CFrame = TreasureHunter.homeCFrame
     end
 
     return success
@@ -300,16 +300,18 @@ end
 function TreasureHunter.Start()
     if TreasureHunter.isHunting then return end
     TreasureHunter.isHunting = true
+    
+    -- Kalo Home belum di-set manual, auto-save posisi sekarang biar ga nyasar
+    if not TreasureHunter.homeCFrame then
+        local char = Player.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            TreasureHunter.homeCFrame = char.HumanoidRootPart.CFrame
+        end
+    end
+
     TreasureHunter.UpdateStatus("Status: Starting...")
 
     task.spawn(function()
-        -- SIMPEN POSISI AWAL (XYZ) SEBELUM LOOPING
-        local char = Player.Character
-        local savedCFrame
-        if char and char:FindFirstChild("HumanoidRootPart") then
-            savedCFrame = char.HumanoidRootPart.CFrame
-        end
-
         while TreasureHunter.isHunting do
             local map = TreasureHunter.findNextMap()
 
@@ -321,13 +323,12 @@ function TreasureHunter.Start()
 
             TreasureHunter.UpdateStatus("Status: Found Map!")
             
-            -- Lempar posisi awal ke fungsi eksekutor
-            local success = TreasureHunter.huntSingleMap(map, savedCFrame)
+            local success = TreasureHunter.huntSingleMap(map)
 
             if success then
                 TreasureHunter.mapsCompleted = TreasureHunter.mapsCompleted + 1
                 TreasureHunter.UpdateStatus("Status: Map Completed!")
-                task.wait(1.5) -- Jeda bentar biar natural
+                task.wait(1.5) 
             else
                 TreasureHunter.UpdateStatus("Status: Stuck/Failed. Retrying...")
                 task.wait(2)
@@ -345,6 +346,14 @@ end
 -- ==========================================
 -- 3. KONEKSI TOMBOL UTAMA
 -- ==========================================
+SetHomeBtn.MouseButton1Click:Connect(function()
+    local char = Player.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        TreasureHunter.homeCFrame = char.HumanoidRootPart.CFrame
+        TreasureHunter.UpdateStatus("Status: Home Set! Ready to Farm.")
+    end
+end)
+
 StartBtn.MouseButton1Click:Connect(TreasureHunter.Start)
 
 StopBtn.MouseButton1Click:Connect(TreasureHunter.Stop)
