@@ -205,21 +205,23 @@ end
 
 function TreasureHunter.huntSingleMap(map, savedCFrame)
     local character = Player.Character
-    if not character or not character:FindFirstChild("HumanoidRootPart") then 
-        warn("[TreasureHunter] Gagal: Tidak ada karakter")
+    -- Ditambahin ngecek Humanoid biar bisa ngatur speed
+    if not character or not character:FindFirstChild("HumanoidRootPart") or not character:FindFirstChild("Humanoid") then 
+        warn("[TreasureHunter] Gagal: Tidak ada karakter/Humanoid")
         return false 
     end
     local hrp = character.HumanoidRootPart
+    local humanoid = character.Humanoid
 
     local location = map:GetAttribute("Location")
     
     if not location then 
-        warn("[TreasureHunter] Gagal: Peta tidak memiliki atribut Location sama sekali!")
         return false 
     end
 
     local targetPosition = typeof(location) == "CFrame" and location.Position or location
-    local targetCFrame = CFrame.new(targetPosition + Vector3.new(0, 5, 0))
+    -- Y offset kita kurangin jadi 2.5 biar karakternya napak tanah, ga melayang
+    local targetCFrame = CFrame.new(targetPosition + Vector3.new(0, 2.5, 0))
 
     local pan = TreasureHunter.getPan()
     if not pan then 
@@ -234,10 +236,12 @@ function TreasureHunter.huntSingleMap(map, savedCFrame)
 
     TreasureHunter.UpdateStatus("Status: Digging...")
 
-    -- KUNCI POSISI BIAR GA KEJANG
+    -- AWAL GALI: Bikin napak tapi gabisa gerak
     hrp.CFrame = targetCFrame
-    hrp.Velocity = Vector3.zero 
-    hrp.Anchored = true 
+    local oldWalkSpeed = humanoid.WalkSpeed
+    local oldJumpPower = humanoid.JumpPower
+    humanoid.WalkSpeed = 0
+    humanoid.JumpPower = 0
 
     local timeout = 120 
     local startTime = tick()
@@ -260,8 +264,15 @@ function TreasureHunter.huntSingleMap(map, savedCFrame)
             break
         end
 
-        -- Make sure posisinya tetep di target
-        hrp.CFrame = targetCFrame
+        -- Trik anti-flicker tanpa Anchor: 
+        -- Cek kalo karakter lu kegeser lebih dari 3 stud (ditarik server), baru kita paksa balik posisinya.
+        -- Kalo ga kegeser jauh, biarin aja dia napak natural.
+        if (hrp.Position - targetPosition).Magnitude > 3 then
+            hrp.CFrame = targetCFrame
+        end
+
+        -- Tahan velocity X dan Z biar ga licin/geser-geser sendiri, tapi Y tetep ada biar jatoh (napak)
+        hrp.Velocity = Vector3.new(0, hrp.Velocity.Y, 0)
 
         -- Gali tiap 0.2 detik
         if tick() - lastCollectTime > 0.2 then
@@ -274,8 +285,9 @@ function TreasureHunter.huntSingleMap(map, savedCFrame)
         task.wait(0.05)
     end
 
-    -- CLEANUP KELAR GALI
-    hrp.Anchored = false 
+    -- CLEANUP KELAR GALI: Balikin speed sama bisa lompat lagi
+    humanoid.WalkSpeed = oldWalkSpeed
+    humanoid.JumpPower = oldJumpPower
     
     -- Teleport balik ke koordinat awal
     if savedCFrame then
