@@ -211,49 +211,42 @@ function TreasureHunter.getPan()
     return nil
 end
 
--- Fungsi baru buat nyari dan nge-reset Auto Pan
+-- Fungsi baru buat nembak langsung ke AutoButton (Jalur VIP hasil Spy)
 function TreasureHunter.ResetAutoPan()
     local playerGui = Player:FindFirstChild("PlayerGui")
     if not playerGui then return end
 
-    -- Cari tombol ke akar-akarnya
-    local function findButton(parent)
-        for _, child in ipairs(parent:GetChildren()) do
-            if child:IsA("GuiButton") then 
-                local text = child:IsA("TextButton") and string.lower(child.Text) or ""
-                local name = string.lower(child.Name)
-                
-                if string.find(text, "auto pan") or string.find(name, "autopan") or string.find(name, "autodig") then
-                    return child
-                end
+    -- Kita susuri path-nya persis kayak hasil screenshot lu
+    local toolUI = playerGui:FindFirstChild("ToolUI")
+    if toolUI then
+        local mobileDig = toolUI:FindFirstChild("MobileDig")
+        if mobileDig then
+            local autoBtn = mobileDig:FindFirstChild("AutoButton")
+            
+            if autoBtn then
+                print("[TreasureHunter] Nemu tombol Auto Pan beneran! Mereset (Off -> On)...")
+                pcall(function()
+                    -- Mayoritas executor mobile support firesignal atau getconnections
+                    if firesignal then
+                        firesignal(autoBtn.MouseButton1Click)
+                        task.wait(0.5) -- Jeda bentar biar gamenya ga ngira kita nge-spam
+                        firesignal(autoBtn.MouseButton1Click)
+                    elseif getconnections then
+                        for _, conn in ipairs(getconnections(autoBtn.MouseButton1Click)) do
+                            conn:Function()
+                        end
+                        task.wait(0.5)
+                        for _, conn in ipairs(getconnections(autoBtn.MouseButton1Click)) do
+                            conn:Function()
+                        end
+                    end
+                end)
+            else
+                warn("[TreasureHunter] AutoButton ga ketemu di dalem MobileDig!")
             end
-            local found = findButton(child)
-            if found then return found end
         end
-        return nil
-    end
-
-    local autoPanBtn = findButton(playerGui)
-    if autoPanBtn then
-        print("[TreasureHunter] Nemu tombol Auto Pan! Mereset (Off -> On)...")
-        pcall(function()
-            -- Mayoritas executor mobile support firesignal atau getconnections
-            if firesignal then
-                firesignal(autoPanBtn.MouseButton1Click)
-                task.wait(0.5)
-                firesignal(autoPanBtn.MouseButton1Click)
-            elseif getconnections then
-                for _, conn in ipairs(getconnections(autoPanBtn.MouseButton1Click)) do
-                    conn:Function()
-                end
-                task.wait(0.5)
-                for _, conn in ipairs(getconnections(autoPanBtn.MouseButton1Click)) do
-                    conn:Function()
-                end
-            end
-        end)
     else
-        warn("[TreasureHunter] Tombol Auto Pan ga ketemu! Mungkin namanya beda di dalem gamenya.")
+        warn("[TreasureHunter] ToolUI ga ketemu, pastikan pan udah ke-equip!")
     end
 end
 
