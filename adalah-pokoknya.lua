@@ -211,12 +211,26 @@ function TreasureHunter.getPan()
     return nil
 end
 
--- Fungsi baru buat nembak langsung ke AutoButton (Jalur VIP hasil Spy)
-function TreasureHunter.ResetAutoPan()
+-- Fungsi Reset Auto Pan versi Cabut-Colok
+function TreasureHunter.ResetAutoPan(pan)
+    -- 1. Copot Pan (Toggle Unequip pake remote bawaan gamenya)
+    if pan then
+        print("[TreasureHunter] Mencopot Pan biar Auto kereset OFF...")
+        pcall(function()
+            ReplicatedStorage.Remotes.CustomBackpack.EquipRemote:FireServer(pan)
+        end)
+        task.wait(0.8) -- Kasih jeda lumayan biar server beneran masukin ke tas
+    end
+    
+    -- 2. Pegang lagi Pan-nya
+    print("[TreasureHunter] Equip ulang Pan...")
+    local newPan = TreasureHunter.getPan()
+    task.wait(0.8) -- Tunggu UI MobileDig muncul lagi di layar
+    
+    -- 3. Karena sekarang PASTI OFF, kita tembak 1x biar jadi ON
     local playerGui = Player:FindFirstChild("PlayerGui")
     if not playerGui then return end
-
-    -- Kita susuri path-nya persis kayak hasil screenshot lu
+    
     local toolUI = playerGui:FindFirstChild("ToolUI")
     if toolUI then
         local mobileDig = toolUI:FindFirstChild("MobileDig")
@@ -224,29 +238,18 @@ function TreasureHunter.ResetAutoPan()
             local autoBtn = mobileDig:FindFirstChild("AutoButton")
             
             if autoBtn then
-                print("[TreasureHunter] Nemu tombol Auto Pan beneran! Mereset (Off -> On)...")
+                print("[TreasureHunter] Nembak tombol Auto Pan 1x biar langsung ON!")
                 pcall(function()
-                    -- Mayoritas executor mobile support firesignal atau getconnections
                     if firesignal then
-                        firesignal(autoBtn.MouseButton1Click)
-                        task.wait(0.5) -- Jeda bentar biar gamenya ga ngira kita nge-spam
                         firesignal(autoBtn.MouseButton1Click)
                     elseif getconnections then
                         for _, conn in ipairs(getconnections(autoBtn.MouseButton1Click)) do
                             conn:Function()
                         end
-                        task.wait(0.5)
-                        for _, conn in ipairs(getconnections(autoBtn.MouseButton1Click)) do
-                            conn:Function()
-                        end
                     end
                 end)
-            else
-                warn("[TreasureHunter] AutoButton ga ketemu di dalem MobileDig!")
             end
         end
-    else
-        warn("[TreasureHunter] ToolUI ga ketemu, pastikan pan udah ke-equip!")
     end
 end
 
@@ -328,7 +331,7 @@ function TreasureHunter.huntSingleMap(map)
     humanoid.WalkSpeed = oldWalkSpeed
     humanoid.JumpPower = oldJumpPower
     
-    -- TELEPORT BALIK KE HOME (Maksa 3x biar server pasrah dan ga narik balik)
+    -- TELEPORT BALIK KE HOME (Maksa 3x biar server pasrah)
     if TreasureHunter.homeCFrame then
         for i = 1, 3 do
             hrp.CFrame = TreasureHunter.homeCFrame
@@ -336,9 +339,9 @@ function TreasureHunter.huntSingleMap(map)
         end
     end
 
-    -- RESET AUTO PAN BILA PERLU (Jeda bentar nunggu karakternya napak di home)
+    -- RESET AUTO PAN PAKE JURUS CABUT-COLOK
     task.wait(0.5)
-    TreasureHunter.ResetAutoPan()
+    TreasureHunter.ResetAutoPan(pan) -- pan-nya diselipin ke sini
 
     return success
 end
