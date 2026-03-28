@@ -159,21 +159,19 @@ task.spawn(function()
     while isRunning do
         cachedEggs = FindAllEggs()
         if ServerCountLabel then
-            ServerCountLabel.Text = "Telur di Server: " .. #cachedEggs
+            ServerCountLabel.Text = "Telur di Server ada: " .. #cachedEggs
         end
         task.wait(1)
     end
 end)
 
--- TOMBOL TELEPORT: Terbang fisik ke target
+-- TOMBOL TELEPORT: Murni manual, pake trik Seated Bypass
 TpBtn.MouseButton1Click:Connect(function()
-    if isFlying then return end -- Blokir biar ga dispam pas lagi terbang
-    
     cachedEggs = FindAllEggs()
     
     if #cachedEggs == 0 then
         TpBtn.Text = "KOSONG! Nunggu..."
-        task.delay(1.5, function() if not isFlying then TpBtn.Text = "TELEPORT (1x)" end end)
+        task.delay(1.5, function() TpBtn.Text = "TELEPORT (1x)" end)
         return
     end
 
@@ -184,7 +182,7 @@ TpBtn.MouseButton1Click:Connect(function()
     local targetEgg = cachedEggs[currentEggIndex]
     local char = Player.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    local hum = char and char:FindFirstChild("Humanoid")
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
     
     if hrp and hum and targetEgg and targetEgg.Parent then
         local targetPos = nil
@@ -195,82 +193,49 @@ TpBtn.MouseButton1Click:Connect(function()
         end
         
         if targetPos then
-            isFlying = true
-            TpBtn.Text = "TERBANG FISIK..."
+            TpBtn.Text = "TELEPORTING..."
             TpBtn.BackgroundColor3 = Color3.fromRGB(180, 120, 50)
             
-            -- Posisi tujuan (3 studs di atas telur biar ga nyungsep)
-            local targetDest = targetPos + Vector3.new(0, 3, 0)
+            local targetCFrame = CFrame.new(targetPos + Vector3.new(0, 3, 0))
             
-            -- Bikin karakter melayang pake BodyPosition & BodyGyro
-            local bp = Instance.new("BodyPosition")
-            bp.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-            bp.P = 3000 -- Kecepatan tarikan
-            bp.D = 500  -- Rem biar ga bablas
-            bp.Position = targetDest
-            bp.Parent = hrp
+            -- ==========================================
+            -- JURUS BYPASS: STATUS DUDUK (SEATED)
+            -- Ngelabuin server biar ngira kita naik kendaraan
+            -- ==========================================
+            local oldWS = hum.WalkSpeed
+            local oldJP = hum.JumpPower
             
-            local bg = Instance.new("BodyGyro")
-            bg.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-            bg.CFrame = hrp.CFrame
-            bg.Parent = hrp
-
-            -- Bikin karakter berstatus "jatuh bebas" di mata server
-            local oldPlatformStand = hum.PlatformStand
-            hum.PlatformStand = true
+            -- Bekuin pergerakan & paksa duduk
+            hum.WalkSpeed = 0
+            hum.JumpPower = 0
+            hum:ChangeState(Enum.HumanoidStateType.Seated)
             
-            -- Noclip: Matiin collision tiap frame biar bisa nembus objek/dinding
-            local noClipConn = RunService.Stepped:Connect(function()
-                for _, part in ipairs(char:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        part.CanCollide = false
-                    end
-                end
-            end)
-
-            -- Pantau jarak sampe nyampe ke telur
-            task.spawn(function()
-                local timeout = 15 -- Kalo nyangkut lebih dari 15 detik, batalin terbangnya
-                local startFly = tick()
-                
-                while tick() - startFly < timeout do
-                    local dist = (hrp.Position - targetDest).Magnitude
-                    if dist < 5 then 
-                        break -- Udah deket banget, stop terbang
-                    end
-                    task.wait(0.1)
-                end
-                
-                -- Bersih-bersih pas udah nyampe
-                bp:Destroy()
-                bg:Destroy()
-                noClipConn:Disconnect()
-                
-                hum.PlatformStand = oldPlatformStand
+            -- Kasih napas 0.1 detik biar server nyatet kalo kita beneran lagi duduk
+            task.wait(0.1)
+            
+            -- Paksa pindah 3x ke telur pas lagi "duduk"
+            for i = 1, 3 do
+                hrp.CFrame = targetCFrame
                 hrp.Velocity = Vector3.zero
                 hrp.RotVelocity = Vector3.zero
-                
-                -- Senggol Bacok Virtual (Buat mastiin item keambil)
-                local eggPart = targetEgg:IsA("BasePart") and targetEgg or targetEgg:FindFirstChildWhichIsA("BasePart")
-                if eggPart and firetouchinterest then
-                    pcall(function()
-                        firetouchinterest(hrp, eggPart, 0)
-                        task.wait(0.05)
-                        firetouchinterest(hrp, eggPart, 1)
-                    end)
-                end
-                
-                isFlying = false
-                currentEggIndex = currentEggIndex + 1
-                
-                TpBtn.Text = "SUKSES TP!"
-                TpBtn.BackgroundColor3 = Color3.fromRGB(50, 180, 80)
-                task.delay(1, function() 
-                    if not isFlying then 
-                        TpBtn.Text = "TELEPORT (1x)" 
-                        TpBtn.BackgroundColor3 = Color3.fromRGB(120, 60, 180)
-                    end
-                end)
+                task.wait(0.05)
+            end
+            
+            -- Tunggu bentar sampe server stabil
+            task.wait(0.2)
+            
+            -- Bangunin karakter & balikin jalan normal
+            hum.WalkSpeed = oldWS
+            hum.JumpPower = oldJP
+            hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+            
+            currentEggIndex = currentEggIndex + 1
+            
+            TpBtn.Text = "SUKSES TP!"
+            TpBtn.BackgroundColor3 = Color3.fromRGB(50, 180, 80)
+            task.delay(0.8, function() 
+                TpBtn.Text = "TELEPORT (1x)" 
+                TpBtn.BackgroundColor3 = Color3.fromRGB(120, 60, 180)
             end)
         end
     end
