@@ -198,39 +198,49 @@ function EggHunter.Start()
                 if hrp then
                     EggHunter.UpdateStatus("Status: Collecting... ("..i.."/"..#eggs..")")
                     
-                    -- 1. Teleport nempel ke telurnya
-                    local targetCFrame = egg:IsA("Model") and egg:GetPivot() or egg.CFrame
-                    
-                    for j = 1, 3 do
-                        hrp.CFrame = targetCFrame
-                        hrp.Velocity = Vector3.zero
-                        task.wait(0.05)
+                    -- Cari Part spesifik yang punya TouchInterest hasil dari Spy lu
+                    local targetPart = nil
+                    for _, desc in ipairs(egg:GetDescendants()) do
+                        if desc:IsA("BasePart") and desc:FindFirstChild("TouchInterest") then
+                            targetPart = desc
+                            break
+                        end
                     end
                     
-                    -- 2. JURUS HACKER: Paksa sistem "Sentuh" (firetouchinterest)
-                    -- Kita loop semua bagian dari telurnya, takutnya hitboxnya disembunyiin
-                    for _, desc in ipairs(egg:GetDescendants()) do
-                        if desc:IsA("BasePart") then
-                            if firetouchinterest then
-                                -- 0 itu artinya 'Mulai Nyentuh'
-                                firetouchinterest(hrp, desc, 0)
+                    -- Jaga-jaga kalo strukturnya ganti, ambil part apa aja
+                    if not targetPart then
+                        targetPart = egg:FindFirstChildWhichIsA("BasePart", true)
+                    end
+                    
+                    if targetPart then
+                        -- 1. Jalur VIP Executor (Kalo executor lu beneran support)
+                        if firetouchinterest then
+                            pcall(function()
+                                firetouchinterest(hrp, targetPart, 0)
                                 task.wait(0.01)
-                                -- 1 itu artinya 'Ngelepas Sentuhan'
-                                firetouchinterest(hrp, desc, 1)
-                            end
+                                firetouchinterest(hrp, targetPart, 1)
+                            end)
                         end
                         
-                        -- 3. Jaga-jaga kalo devnya boong dan ternyata telurnya butuh dipencet
-                        if desc:IsA("ProximityPrompt") then
-                            if fireproximityprompt then
-                                fireproximityprompt(desc)
-                            end
+                        -- 2. JURUS WIGGLE DANCE (Solusi ampuh buat Executor Mobile)
+                        -- Kita paksa karakter naik turun nembus telur biar fisika Roblox ke-trigger
+                        local targetCFrame = targetPart.CFrame
+                        
+                        for j = 1, 4 do
+                            hrp.Velocity = Vector3.zero
+                            -- Loncat ke atas telur
+                            hrp.CFrame = targetCFrame * CFrame.new(0, 3, 0) 
+                            task.wait(0.05)
+                            -- Hajar ke dalem tanah nembus telur
+                            hrp.CFrame = targetCFrame * CFrame.new(0, -1, 0) 
+                            task.wait(0.05)
                         end
                     end
                     
-                    -- Kasih jeda biar server ga ngira kita nge-DDoS
-                    task.wait(0.3)
+                    -- Kasih napas bentar buat server ngirim item ke tas
+                    task.wait(0.4)
                     
+                    -- Cek kalo telurnya udah sukses ilang dari map
                     if not egg or not egg.Parent then
                         EggHunter.eggsCollected = EggHunter.eggsCollected + 1
                     end
