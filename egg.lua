@@ -1,13 +1,14 @@
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local PathfindingService = game:GetService("PathfindingService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Player = Players.LocalPlayer
 
 -- ==========================================
 -- 1. BIKIN GUI DASAR & SISTEM MINIMIZE
 -- ==========================================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "AutoWalkEggHunter"
+ScreenGui.Name = "UltimateHybridEggHunter"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.IgnoreGuiInset = true 
 
@@ -28,6 +29,7 @@ MainFrame.Active = true
 MainFrame.Parent = ScreenGui
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 
+-- Sistem Drag GUI
 local dragging, dragInput, dragStart, startPos
 MainFrame.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -56,7 +58,7 @@ end)
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 30)
 Title.BackgroundTransparency = 1
-Title.Text = "🥚 AI AUTO-WALK"
+Title.Text = "🥚 ULTIMATE HYBRID"
 Title.TextColor3 = Color3.fromRGB(200, 255, 200)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 15
@@ -72,17 +74,18 @@ ServerCountLabel.Font = Enum.Font.GothamMedium
 ServerCountLabel.TextSize = 13
 ServerCountLabel.Parent = MainFrame
 
-local WalkBtn = Instance.new("TextButton")
-WalkBtn.Size = UDim2.new(1, -20, 0, 40)
-WalkBtn.Position = UDim2.new(0, 10, 1, -50)
-WalkBtn.BackgroundColor3 = Color3.fromRGB(60, 120, 180)
-WalkBtn.Text = "JALAN KE TELUR"
-WalkBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-WalkBtn.Font = Enum.Font.GothamBold
-WalkBtn.TextSize = 14
-WalkBtn.Parent = MainFrame
-Instance.new("UICorner", WalkBtn).CornerRadius = UDim.new(0, 6)
+local ActionBtn = Instance.new("TextButton")
+ActionBtn.Size = UDim2.new(1, -20, 0, 40)
+ActionBtn.Position = UDim2.new(0, 10, 1, -50)
+ActionBtn.BackgroundColor3 = Color3.fromRGB(60, 120, 180)
+ActionBtn.Text = "JALAN + TP (1x)"
+ActionBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ActionBtn.Font = Enum.Font.GothamBold
+ActionBtn.TextSize = 14
+ActionBtn.Parent = MainFrame
+Instance.new("UICorner", ActionBtn).CornerRadius = UDim.new(0, 6)
 
+-- TOMBOL CLOSE
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Size = UDim2.new(0, 25, 0, 25)
 CloseBtn.Position = UDim2.new(1, -30, 0, 5)
@@ -93,59 +96,105 @@ CloseBtn.Font = Enum.Font.GothamBold
 CloseBtn.Parent = MainFrame
 Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 5)
 
+-- TOMBOL MINIMIZE
+local MinimizeBtn = Instance.new("TextButton")
+MinimizeBtn.Size = UDim2.new(0, 25, 0, 25)
+MinimizeBtn.Position = UDim2.new(1, -60, 0, 5)
+MinimizeBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+MinimizeBtn.Text = "-"
+MinimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinimizeBtn.Font = Enum.Font.GothamBold
+MinimizeBtn.Parent = MainFrame
+Instance.new("UICorner", MinimizeBtn).CornerRadius = UDim.new(0, 5)
+
+-- TOMBOL OPEN (Muncul pas diminimize)
+local OpenBtn = Instance.new("TextButton")
+OpenBtn.Size = UDim2.new(0, 45, 0, 45)
+OpenBtn.Position = UDim2.new(1, -60, 0.5, -22)
+OpenBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 50)
+OpenBtn.Text = "🥚"
+OpenBtn.TextSize = 20
+OpenBtn.Visible = false
+OpenBtn.Parent = ScreenGui
+Instance.new("UICorner", OpenBtn).CornerRadius = UDim.new(1, 0)
+Instance.new("UIStroke", OpenBtn).Color = Color3.fromRGB(150, 255, 150)
+
+MinimizeBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
+    OpenBtn.Visible = true
+end)
+OpenBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = true
+    OpenBtn.Visible = false
+end)
+
 -- ==========================================
--- 2. LOGIKA PENCAKARI TELUR
+-- 2. SISTEM WAYPOINT & PENCARI TELUR
 -- ==========================================
 local isRunning = true
 local currentEggIndex = 1
 local cachedEggs = {}
+
+-- Setup Remote Fast Travel bawaan game
+local FastTravelRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Misc"):WaitForChild("FastTravel")
+local WaypointsFolder = workspace:WaitForChild("Map"):WaitForChild("Waypoints")
 
 local function FindAllEggs()
     local found = {}
     local geodeFolder = workspace:FindFirstChild("Geode")
     if geodeFolder then
         for _, obj in ipairs(geodeFolder:GetChildren()) do
-            if obj.Name == "EasterEgg" and obj.Parent then
-                table.insert(found, obj)
-            end
+            if obj.Name == "EasterEgg" and obj.Parent then table.insert(found, obj) end
         end
     else
         for _, obj in ipairs(workspace:GetDescendants()) do
-            if obj.Name == "EasterEgg" and obj.Parent then
-                table.insert(found, obj)
-            end
+            if obj.Name == "EasterEgg" and obj.Parent then table.insert(found, obj) end
         end
     end
     return found
+end
+
+local function GetClosestWaypoint(targetPosition)
+    local closestWP = nil
+    local shortestDist = math.huge
+    for _, wp in ipairs(WaypointsFolder:GetChildren()) do
+        if wp:IsA("Model") and wp.PrimaryPart then
+            local dist = (wp.PrimaryPart.Position - targetPosition).Magnitude
+            if dist < shortestDist then
+                shortestDist = dist
+                closestWP = wp
+            end
+        end
+    end
+    return closestWP
 end
 
 task.spawn(function()
     while isRunning do
         cachedEggs = FindAllEggs()
         if ServerCountLabel then
-            ServerCountLabel.Text = "Telur di Server adaa: " .. #cachedEggs
+            ServerCountLabel.Text = "Telur di Server: " .. #cachedEggs
         end
         task.wait(1)
     end
 end)
 
 -- ==========================================
--- 3. AI PATHFINDING (GPS OTOMATIS)
+-- 3. LOGIKA HYBRID (FAST TRAVEL -> AI WALK)
 -- ==========================================
-local isWalking = false
+local isWorking = false
 
-WalkBtn.MouseButton1Click:Connect(function()
-    -- Kalo lagi jalan dan tombol dipencet, berfungsi jadi tombol STOP
-    if isWalking then
-        isWalking = false
-        WalkBtn.Text = "MEMBATALKAN..."
+ActionBtn.MouseButton1Click:Connect(function()
+    if isWorking then
+        isWorking = false
+        ActionBtn.Text = "MEMBATALKAN..."
         return
     end
     
     cachedEggs = FindAllEggs()
     if #cachedEggs == 0 then
-        WalkBtn.Text = "KOSONG! Nunggu..."
-        task.delay(1.5, function() if not isWalking then WalkBtn.Text = "JALAN KE TELUR" end end)
+        ActionBtn.Text = "KOSONG! Nunggu..."
+        task.delay(1.5, function() if not isWorking then ActionBtn.Text = "JALAN + TP (1x)" end end)
         return
     end
 
@@ -160,20 +209,36 @@ WalkBtn.MouseButton1Click:Connect(function()
         local targetPos = targetEgg:IsA("Model") and targetEgg:GetPivot().Position or targetEgg.Position
         
         if targetPos then
-            isWalking = true
-            WalkBtn.Text = "🛑 STOP JALAN"
-            WalkBtn.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
+            isWorking = true
+            ActionBtn.Text = "🛑 STOP PROSES"
+            ActionBtn.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
             
             task.spawn(function()
-                -- Bikin settingan GPS buat karakter
+                -- LAKUKAN PENGECEKAN FAST TRAVEL
+                local destWP = GetClosestWaypoint(targetPos)
+                local sourceWP = GetClosestWaypoint(hrp.Position)
+                
+                -- Kalo lu belom ada di Waypoint yang deket telur, panggil ojek portal!
+                if destWP and sourceWP and destWP ~= sourceWP then
+                    ActionBtn.Text = "🛑 FAST TRAVEL..."
+                    FastTravelRemote:FireServer(sourceWP, destWP)
+                    
+                    -- Kasih waktu 3 detik buat game nge-load layar fast travel lu
+                    task.wait(3)
+                end
+                
+                -- Kalo lu udah di area yang bener (atau udah selesai fast travel), mulai jalan kaki
+                if not isWorking then return end
+                ActionBtn.Text = "🛑 AI JALAN KAKI..."
+                
+                -- Bikin rute GPS dari posisi lu yang BARU ke titik telur
                 local path = PathfindingService:CreatePath({
-                    AgentRadius = 3,         -- Jarak biar ga nabrak tembok
-                    AgentHeight = 5,         -- Tinggi karakter
-                    AgentCanJump = true,     -- Izinkan AI buat loncat
-                    WaypointSpacing = 4      -- Jarak antar titik kordinat (GPS)
+                    AgentRadius = 3,
+                    AgentHeight = 5,
+                    AgentCanJump = true,
+                    WaypointSpacing = 4
                 })
                 
-                -- Mulai hitung rute dari tempat lu ke telur
                 local success, errorMessage = pcall(function()
                     path:ComputeAsync(hrp.Position, targetPos)
                 end)
@@ -181,32 +246,30 @@ WalkBtn.MouseButton1Click:Connect(function()
                 if success and path.Status == Enum.PathStatus.Success then
                     local waypoints = path:GetWaypoints()
                     
-                    -- Mulai jalanin karakter ngikutin titik-titik GPS
                     for i, wp in ipairs(waypoints) do
-                        if not isWalking then break end -- Kalo lu pencet STOP
+                        if not isWorking then break end
                         
-                        -- Kalo AI bilang harus loncat (misal ada tebing/batu)
+                        -- Loncat kalo AI nyuruh loncat (ada tangga/batu)
                         if wp.Action == Enum.PathWaypointAction.Jump then
                             hum.Jump = true
                         end
                         
-                        -- Suruh karakter jalan ke titik selanjutnya
+                        -- Jalan ke titik rute
                         hum:MoveTo(wp.Position)
                         
-                        -- Nunggu sampe karakternya nyampe di titik itu (dikasih timeout biar ga stuck)
+                        -- Tunggu sampe nyampe di titik sub-rute (maksimal 2 detik per titik)
                         local timeout = 2
                         local startTimer = tick()
                         repeat
                             task.wait(0.1)
-                        until not isWalking or (hrp.Position - wp.Position).Magnitude < 3 or (tick() - startTimer) > timeout
+                        until not isWorking or (hrp.Position - wp.Position).Magnitude < 3 or (tick() - startTimer) > timeout
                     end
                     
-                    if isWalking then
-                        -- Kalo udah sampe tujuan
-                        isWalking = false
+                    if isWorking then
+                        isWorking = false
                         currentEggIndex = currentEggIndex + 1
                         
-                        -- Senggol bacok virtual
+                        -- Senggol Bacok Virtual pas sampe
                         local eggPart = targetEgg:IsA("BasePart") and targetEgg or targetEgg:FindFirstChildWhichIsA("BasePart")
                         if eggPart and firetouchinterest then
                             pcall(function()
@@ -216,23 +279,22 @@ WalkBtn.MouseButton1Click:Connect(function()
                             end)
                         end
                         
-                        WalkBtn.Text = "SAMPE! (NEXT)"
-                        WalkBtn.BackgroundColor3 = Color3.fromRGB(50, 180, 80)
-                        task.delay(1, function() 
-                            if not isWalking then 
-                                WalkBtn.Text = "JALAN KE TELUR" 
-                                WalkBtn.BackgroundColor3 = Color3.fromRGB(60, 120, 180)
+                        ActionBtn.Text = "SAMPE! (NEXT)"
+                        ActionBtn.BackgroundColor3 = Color3.fromRGB(50, 180, 80)
+                        task.delay(1.5, function() 
+                            if not isWorking then 
+                                ActionBtn.Text = "JALAN + TP (1x)" 
+                                ActionBtn.BackgroundColor3 = Color3.fromRGB(60, 120, 180)
                             end
                         end)
                     end
                 else
-                    -- Kalo AI ga nemu jalan (misal telurnya di dalem ruangan terkunci)
-                    isWalking = false
-                    WalkBtn.Text = "RUTE BUNTU!"
-                    WalkBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 50)
+                    isWorking = false
+                    ActionBtn.Text = "RUTE BUNTU!"
+                    ActionBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 50)
                     task.delay(2, function() 
-                        WalkBtn.Text = "JALAN KE TELUR" 
-                        WalkBtn.BackgroundColor3 = Color3.fromRGB(60, 120, 180)
+                        ActionBtn.Text = "JALAN + TP (1x)" 
+                        ActionBtn.BackgroundColor3 = Color3.fromRGB(60, 120, 180)
                     end)
                 end
             end)
@@ -242,6 +304,6 @@ end)
 
 CloseBtn.MouseButton1Click:Connect(function()
     isRunning = false
-    isWalking = false
+    isWorking = false
     ScreenGui:Destroy()
 end)
