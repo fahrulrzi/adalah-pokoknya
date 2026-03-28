@@ -1,17 +1,17 @@
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Player = Players.LocalPlayer
 
 -- ==========================================
 -- 1. BIKIN GUI DASAR & SISTEM MINIMIZE
 -- ==========================================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "ManualEggTeleporterUltimate"
+ScreenGui.Name = "HybridEggTeleporter"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.IgnoreGuiInset = true 
 
--- Bypass UI buat semua jenis executor
 local success, target = pcall(function() return gethui() end)
 if success and target then
     ScreenGui.Parent = target
@@ -23,13 +23,12 @@ end
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 250, 0, 140)
 MainFrame.Position = UDim2.new(0.5, 150, 0.5, -65)
-MainFrame.BackgroundColor3 = Color3.fromRGB(25, 20, 35)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 30, 40)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Parent = ScreenGui
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 
--- Sistem Drag GUI
 local dragging, dragInput, dragStart, startPos
 MainFrame.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -58,8 +57,8 @@ end)
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 30)
 Title.BackgroundTransparency = 1
-Title.Text = "🥚 EGG TP (ANTI-KICK)"
-Title.TextColor3 = Color3.fromRGB(255, 200, 255)
+Title.Text = "🥚 HYBRID TP EGG"
+Title.TextColor3 = Color3.fromRGB(200, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 15
 Title.Parent = MainFrame
@@ -77,7 +76,7 @@ ServerCountLabel.Parent = MainFrame
 local TpBtn = Instance.new("TextButton")
 TpBtn.Size = UDim2.new(1, -20, 0, 40)
 TpBtn.Position = UDim2.new(0, 10, 1, -50)
-TpBtn.BackgroundColor3 = Color3.fromRGB(120, 60, 180)
+TpBtn.BackgroundColor3 = Color3.fromRGB(60, 120, 180)
 TpBtn.Text = "TELEPORT (1x)"
 TpBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 TpBtn.Font = Enum.Font.GothamBold
@@ -120,24 +119,24 @@ MinimizeBtn.MouseButton1Click:Connect(function()
     MainFrame.Visible = false
     OpenBtn.Visible = true
 end)
-
 OpenBtn.MouseButton1Click:Connect(function()
     MainFrame.Visible = true
     OpenBtn.Visible = false
 end)
 
 -- ==========================================
--- 2. LOGIKA UTAMA & ANTI RUBBER-BAND (BODY MOVERS)
+-- 2. SISTEM WAYPOINT & PENCARI TELUR
 -- ==========================================
 local isRunning = true
 local currentEggIndex = 1
 local cachedEggs = {}
-local isFlying = false 
+
+local FastTravelRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Misc"):WaitForChild("FastTravel")
+local WaypointsFolder = workspace:WaitForChild("Map"):WaitForChild("Waypoints")
 
 local function FindAllEggs()
     local found = {}
     local geodeFolder = workspace:FindFirstChild("Geode")
-    
     if geodeFolder then
         for _, obj in ipairs(geodeFolder:GetChildren()) do
             if obj.Name == "EasterEgg" and obj.Parent then
@@ -154,120 +153,104 @@ local function FindAllEggs()
     return found
 end
 
--- Background loop buat update jumlah telur di UI
+local function GetClosestWaypoint(targetPosition)
+    local closestWP = nil
+    local shortestDist = math.huge
+    for _, wp in ipairs(WaypointsFolder:GetChildren()) do
+        if wp:IsA("Model") and wp.PrimaryPart then
+            local dist = (wp.PrimaryPart.Position - targetPosition).Magnitude
+            if dist < shortestDist then
+                shortestDist = dist
+                closestWP = wp
+            end
+        end
+    end
+    return closestWP
+end
+
 task.spawn(function()
     while isRunning do
         cachedEggs = FindAllEggs()
         if ServerCountLabel then
-            ServerCountLabel.Text = "Telur di Server adaa: " .. #cachedEggs
+            ServerCountLabel.Text = "Telur di Server: " .. #cachedEggs
         end
         task.wait(1)
     end
 end)
 
--- TOMBOL TELEPORT: Ngesot/Gliding Legal
+-- ==========================================
+-- 3. EKSEKUSI HYBRID TELEPORT
+-- ==========================================
+local isTeleporting = false
+
 TpBtn.MouseButton1Click:Connect(function()
-    cachedEggs = FindAllEggs()
+    if isTeleporting then return end
     
+    cachedEggs = FindAllEggs()
     if #cachedEggs == 0 then
         TpBtn.Text = "KOSONG! Nunggu..."
-        task.delay(1.5, function() TpBtn.Text = "TELEPORT (1x)" end)
+        task.delay(1.5, function() if not isTeleporting then TpBtn.Text = "TELEPORT (1x)" end end)
         return
     end
 
-    if currentEggIndex > #cachedEggs then
-        currentEggIndex = 1
-    end
-
+    if currentEggIndex > #cachedEggs then currentEggIndex = 1 end
     local targetEgg = cachedEggs[currentEggIndex]
+    
     local char = Player.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    local hum = char and char:FindFirstChild("Humanoid")
     
-    if hrp and hum and targetEgg and targetEgg.Parent then
-        local targetPos = nil
-        if targetEgg:IsA("Model") then
-            targetPos = targetEgg:GetPivot().Position
-        elseif targetEgg:IsA("BasePart") then
-            targetPos = targetEgg.Position
-        end
+    if hrp and targetEgg and targetEgg.Parent then
+        local targetPos = targetEgg:IsA("Model") and targetEgg:GetPivot().Position or targetEgg.Position
         
         if targetPos then
-            TpBtn.Text = "OTW MELUNCUR..."
+            isTeleporting = true
+            TpBtn.Text = "FAST TRAVEL..."
             TpBtn.BackgroundColor3 = Color3.fromRGB(180, 120, 50)
             
-            -- Posisi tujuan (dilebihin 2 studs ke atas)
-            local targetDest = targetPos + Vector3.new(0, 2, 0)
-            local distance = (hrp.Position - targetDest).Magnitude
+            -- Langkah 1: Numpang Fast Travel ke pulau terdekat
+            local destWP = GetClosestWaypoint(targetPos)
+            local sourceWP = GetClosestWaypoint(hrp.Position)
             
-            -- Kalo jaraknya kejauhan banget (> 500 studs), kasih tau user
-            if distance > 500 then
-                TpBtn.Text = "KEJAUHAN! JALAN DULU"
-                task.delay(2, function() TpBtn.Text = "TELEPORT (1x)" end)
-                return
+            if destWP and sourceWP and destWP ~= sourceWP then
+                FastTravelRemote:FireServer(sourceWP, destWP)
+                task.wait(2) -- Tunggu loading layar fast travel
             end
-
-            -- ==========================================
-            -- GLIDING AMAN ANTI-CHEAT (Max 45 Studs/detik)
-            -- ==========================================
-            local oldPlatformStand = hum.PlatformStand
-            hum.PlatformStand = true -- Bikin mode terbang
             
-            -- Matiin nabrak tembok
-            local noclip
-            noclip = game:GetService("RunService").Stepped:Connect(function()
-                for _, v in ipairs(char:GetDescendants()) do
-                    if v:IsA("BasePart") then v.CanCollide = false end
-                end
-            end)
-
-            local bp = Instance.new("BodyPosition")
-            bp.MaxForce = Vector3.new(100000, 100000, 100000)
-            bp.P = 1500
-            bp.D = 200
-            bp.Position = targetDest
-            bp.Parent = hrp
+            -- Langkah 2: Jarak udah deket, sikat sisa jaraknya pake CFrame Lock!
+            TpBtn.Text = "FINISHING..."
             
-            local bg = Instance.new("BodyGyro")
-            bg.MaxTorque = Vector3.new(100000, 100000, 100000)
-            bg.CFrame = hrp.CFrame
-            bg.Parent = hrp
-
-            task.spawn(function()
-                -- Nunggu sampe deket sama telur (jarak < 4 studs) atau timeout 15 detik
-                local startFly = tick()
-                while tick() - startFly < 15 do
-                    if (hrp.Position - targetDest).Magnitude < 4 then
-                        break
-                    end
-                    task.wait(0.1)
-                end
-                
-                -- Bersihin efek terbang
-                bp:Destroy()
-                bg:Destroy()
-                noclip:Disconnect()
-                hum.PlatformStand = oldPlatformStand
+            local targetCFrame = CFrame.new(targetPos + Vector3.new(0, 2, 0))
+            hrp.Anchored = true 
+            
+            local tpLock = RunService.Heartbeat:Connect(function()
+                hrp.CFrame = targetCFrame
                 hrp.Velocity = Vector3.zero
-                
-                -- Auto senggol telurnya biar ga usah gerak manual lagi
-                local eggPart = targetEgg:IsA("BasePart") and targetEgg or targetEgg:FindFirstChildWhichIsA("BasePart")
-                if eggPart and firetouchinterest then
-                    pcall(function()
-                        firetouchinterest(hrp, eggPart, 0)
-                        task.wait(0.01)
-                        firetouchinterest(hrp, eggPart, 1)
-                    end)
-                end
-                
-                currentEggIndex = currentEggIndex + 1
-                
-                TpBtn.Text = "SAMPE!"
-                TpBtn.BackgroundColor3 = Color3.fromRGB(50, 180, 80)
-                task.delay(1, function() 
-                    TpBtn.Text = "TELEPORT (1x)" 
-                    TpBtn.BackgroundColor3 = Color3.fromRGB(120, 60, 180)
+            end)
+            
+            task.wait(0.5) -- Lock posisinya setengah detik biar server pasrah
+            tpLock:Disconnect()
+            hrp.Anchored = false
+            
+            -- Langkah 3: Senggol Bacok Virtual
+            local eggPart = targetEgg:IsA("BasePart") and targetEgg or targetEgg:FindFirstChildWhichIsA("BasePart")
+            if eggPart and firetouchinterest then
+                pcall(function()
+                    firetouchinterest(hrp, eggPart, 0)
+                    task.wait(0.05)
+                    firetouchinterest(hrp, eggPart, 1)
                 end)
+            end
+            
+            currentEggIndex = currentEggIndex + 1
+            isTeleporting = false
+            
+            TpBtn.Text = "SUKSES TP!"
+            TpBtn.BackgroundColor3 = Color3.fromRGB(50, 180, 80)
+            task.delay(1, function() 
+                if not isTeleporting then 
+                    TpBtn.Text = "TELEPORT (1x)" 
+                    TpBtn.BackgroundColor3 = Color3.fromRGB(60, 120, 180)
+                end
             end)
         end
     end
