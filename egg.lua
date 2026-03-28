@@ -1,13 +1,13 @@
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 local Player = Players.LocalPlayer
 
 -- ==========================================
 -- 1. BIKIN GUI DASAR & SISTEM MINIMIZE
 -- ==========================================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "ManualEggTeleporterTween"
+ScreenGui.Name = "ManualEggTeleporterUltimate"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.IgnoreGuiInset = true 
 
@@ -58,10 +58,10 @@ end)
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 30)
 Title.BackgroundTransparency = 1
-Title.Text = "🥚 MANUAL TP EGG"
+Title.Text = "🥚 EGG TP (ANTI-KICK)"
 Title.TextColor3 = Color3.fromRGB(255, 200, 255)
 Title.Font = Enum.Font.GothamBold
-Title.TextSize = 16
+Title.TextSize = 15
 Title.Parent = MainFrame
 
 local ServerCountLabel = Instance.new("TextLabel")
@@ -127,12 +127,12 @@ OpenBtn.MouseButton1Click:Connect(function()
 end)
 
 -- ==========================================
--- 2. LOGIKA TWEENING (TERBANG) KE TELUR
+-- 2. LOGIKA UTAMA & ANTI RUBBER-BAND (BODY MOVERS)
 -- ==========================================
 local isRunning = true
 local currentEggIndex = 1
 local cachedEggs = {}
-local isFlying = false -- Mencegah tombol dipencet dobel pas lagi terbang
+local isFlying = false 
 
 local function FindAllEggs()
     local found = {}
@@ -159,25 +159,21 @@ task.spawn(function()
     while isRunning do
         cachedEggs = FindAllEggs()
         if ServerCountLabel then
-            ServerCountLabel.Text = "Telur di Server ada: " .. #cachedEggs
+            ServerCountLabel.Text = "Telur di Server: " .. #cachedEggs
         end
         task.wait(1)
     end
 end)
 
--- ==========================================
--- 3. EKSEKUSI TWEENING
--- ==========================================
+-- TOMBOL TELEPORT: Terbang fisik ke target
 TpBtn.MouseButton1Click:Connect(function()
-    if isFlying then return end -- Blokir klik kalo karakter masih OTW terbang
+    if isFlying then return end -- Blokir biar ga dispam pas lagi terbang
     
     cachedEggs = FindAllEggs()
     
     if #cachedEggs == 0 then
         TpBtn.Text = "KOSONG! Nunggu..."
-        task.delay(1.5, function() 
-            if not isFlying then TpBtn.Text = "TELEPORT (1x)" end
-        end)
+        task.delay(1.5, function() if not isFlying then TpBtn.Text = "TELEPORT (1x)" end end)
         return
     end
 
@@ -188,8 +184,9 @@ TpBtn.MouseButton1Click:Connect(function()
     local targetEgg = cachedEggs[currentEggIndex]
     local char = Player.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    local hum = char and char:FindFirstChild("Humanoid")
     
-    if hrp and targetEgg and targetEgg.Parent then
+    if hrp and hum and targetEgg and targetEgg.Parent then
         local targetPos = nil
         if targetEgg:IsA("Model") then
             targetPos = targetEgg:GetPivot().Position
@@ -199,40 +196,76 @@ TpBtn.MouseButton1Click:Connect(function()
         
         if targetPos then
             isFlying = true
-            TpBtn.Text = "OTW TERBANG..."
+            TpBtn.Text = "TERBANG FISIK..."
             TpBtn.BackgroundColor3 = Color3.fromRGB(180, 120, 50)
             
-            -- Teleport 3 studs di atas telur biar ga nyangkut di tanah
-            local targetCFrame = CFrame.new(targetPos + Vector3.new(0, 3, 0))
-            local distance = (hrp.Position - targetPos).Magnitude
+            -- Posisi tujuan (3 studs di atas telur biar ga nyungsep)
+            local targetDest = targetPos + Vector3.new(0, 3, 0)
             
-            -- Set kecepatan terbang (Studs per detik). 150 = ngebut tapi aman dari anti-cheat.
-            local speed = 150
-            local timeToReach = distance / speed
+            -- Bikin karakter melayang pake BodyPosition & BodyGyro
+            local bp = Instance.new("BodyPosition")
+            bp.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+            bp.P = 3000 -- Kecepatan tarikan
+            bp.D = 500  -- Rem biar ga bablas
+            bp.Position = targetDest
+            bp.Parent = hrp
             
-            -- Kalo jaraknya udah deket, langsung sekejap aja (0.1 detik)
-            if distance < 50 then
-                timeToReach = 0.1
-            end
+            local bg = Instance.new("BodyGyro")
+            bg.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+            bg.CFrame = hrp.CFrame
+            bg.Parent = hrp
 
-            -- Bikin efek terbang nembus map
-            local tweenInfo = TweenInfo.new(timeToReach, Enum.EasingStyle.Linear)
-            local tween = TweenService:Create(hrp, tweenInfo, {CFrame = targetCFrame})
+            -- Bikin karakter berstatus "jatuh bebas" di mata server
+            local oldPlatformStand = hum.PlatformStand
+            hum.PlatformStand = true
             
-            -- Bekuin fisika karakter biar bisa ngesot terbang mulus nembus halangan
-            hrp.Anchored = true
-            tween:Play()
-            
-            -- Tunggu sampe karakter mendarat di telur
-            tween.Completed:Connect(function()
-                hrp.Anchored = false -- Balikin fisika normal biar bisa gerak lagi
+            -- Noclip: Matiin collision tiap frame biar bisa nembus objek/dinding
+            local noClipConn = RunService.Stepped:Connect(function()
+                for _, part in ipairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = false
+                    end
+                end
+            end)
+
+            -- Pantau jarak sampe nyampe ke telur
+            task.spawn(function()
+                local timeout = 15 -- Kalo nyangkut lebih dari 15 detik, batalin terbangnya
+                local startFly = tick()
+                
+                while tick() - startFly < timeout do
+                    local dist = (hrp.Position - targetDest).Magnitude
+                    if dist < 5 then 
+                        break -- Udah deket banget, stop terbang
+                    end
+                    task.wait(0.1)
+                end
+                
+                -- Bersih-bersih pas udah nyampe
+                bp:Destroy()
+                bg:Destroy()
+                noClipConn:Disconnect()
+                
+                hum.PlatformStand = oldPlatformStand
+                hrp.Velocity = Vector3.zero
+                hrp.RotVelocity = Vector3.zero
+                
+                -- Senggol Bacok Virtual (Buat mastiin item keambil)
+                local eggPart = targetEgg:IsA("BasePart") and targetEgg or targetEgg:FindFirstChildWhichIsA("BasePart")
+                if eggPart and firetouchinterest then
+                    pcall(function()
+                        firetouchinterest(hrp, eggPart, 0)
+                        task.wait(0.05)
+                        firetouchinterest(hrp, eggPart, 1)
+                    end)
+                end
+                
                 isFlying = false
                 currentEggIndex = currentEggIndex + 1
                 
                 TpBtn.Text = "SUKSES TP!"
                 TpBtn.BackgroundColor3 = Color3.fromRGB(50, 180, 80)
-                
-                task.delay(0.8, function() 
+                task.delay(1, function() 
                     if not isFlying then 
                         TpBtn.Text = "TELEPORT (1x)" 
                         TpBtn.BackgroundColor3 = Color3.fromRGB(120, 60, 180)
