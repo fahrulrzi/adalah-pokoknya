@@ -123,7 +123,7 @@ task.spawn(function()
     while isRunning do
         cachedEggs = FindAllEggs()
         if ServerCountLabel then
-            ServerCountLabel.Text = "Telur di Server: " .. #cachedEggs
+            ServerCountLabel.Text = "Telur di Server adaa: " .. #cachedEggs
         end
         task.wait(1)
     end
