@@ -159,7 +159,7 @@ task.spawn(function()
     while isRunning do
         cachedEggs = FindAllEggs()
         if ServerCountLabel then
-            ServerCountLabel.Text = "Telur di Server ada: " .. #cachedEggs
+            ServerCountLabel.Text = "Telur di Server: " .. #cachedEggs
         end
         task.wait(1)
     end
@@ -211,7 +211,7 @@ TpBtn.MouseButton1Click:Connect(function()
             hum:ChangeState(Enum.HumanoidStateType.Seated)
             
             -- Kasih napas 0.1 detik biar server nyatet kalo kita beneran lagi duduk
-            task.wait(0.1)
+            task.wait(3)
             
             -- Paksa pindah 3x ke telur pas lagi "duduk"
             for i = 1, 3 do
