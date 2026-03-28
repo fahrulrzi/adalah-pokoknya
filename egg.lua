@@ -184,51 +184,59 @@ function EggHunter.Start()
 
             if #eggs == 0 then
                 EggHunter.UpdateStatus("Status: Waiting for Eggs...")
-                task.wait(2) -- Jeda nunggu telurnya spawn lagi
+                task.wait(2)
                 continue
             end
 
             for i, egg in ipairs(eggs) do
                 if not EggHunter.isHunting then break end
-                
-                -- Pastikan telurnya belum di-collect orang lain
                 if not egg or not egg.Parent then continue end
 
                 local char = Player.Character
                 local hrp = char and char:FindFirstChild("HumanoidRootPart")
                 
                 if hrp then
-                    local targetPos = nil
-                    if egg:IsA("Model") then
-                        targetPos = egg:GetPivot().Position
-                    elseif egg:IsA("BasePart") then
-                        targetPos = egg.Position
+                    EggHunter.UpdateStatus("Status: Collecting... ("..i.."/"..#eggs..")")
+                    
+                    -- 1. Teleport nempel ke telurnya
+                    local targetCFrame = egg:IsA("Model") and egg:GetPivot() or egg.CFrame
+                    
+                    for j = 1, 3 do
+                        hrp.CFrame = targetCFrame
+                        hrp.Velocity = Vector3.zero
+                        task.wait(0.05)
                     end
                     
-                    if targetPos then
-                        EggHunter.UpdateStatus("Status: Collecting... ("..i.."/"..#eggs..")")
-                        
-                        -- Teleport ke atas telur persis (biar nyenggol hitboxnya)
-                        local targetCFrame = CFrame.new(targetPos + Vector3.new(0, 1.5, 0))
-                        
-                        -- Anti-flicker teleport (paksa 3x biar server nerima posisinya)
-                        for j = 1, 3 do
-                            hrp.CFrame = targetCFrame
-                            hrp.Velocity = Vector3.zero
-                            task.wait(0.05)
+                    -- 2. JURUS HACKER: Paksa sistem "Sentuh" (firetouchinterest)
+                    -- Kita loop semua bagian dari telurnya, takutnya hitboxnya disembunyiin
+                    for _, desc in ipairs(egg:GetDescendants()) do
+                        if desc:IsA("BasePart") then
+                            if firetouchinterest then
+                                -- 0 itu artinya 'Mulai Nyentuh'
+                                firetouchinterest(hrp, desc, 0)
+                                task.wait(0.01)
+                                -- 1 itu artinya 'Ngelepas Sentuhan'
+                                firetouchinterest(hrp, desc, 1)
+                            end
                         end
                         
-                        -- Tunggu bentar biar server ngasih itemnya ke tas lu
-                        task.wait(0.3)
-                        
-                        -- Kalo objeknya hancur/ilang, berarti berhasil ke-collect
-                        if not egg or not egg.Parent then
-                            EggHunter.eggsCollected = EggHunter.eggsCollected + 1
+                        -- 3. Jaga-jaga kalo devnya boong dan ternyata telurnya butuh dipencet
+                        if desc:IsA("ProximityPrompt") then
+                            if fireproximityprompt then
+                                fireproximityprompt(desc)
+                            end
                         end
+                    end
+                    
+                    -- Kasih jeda biar server ga ngira kita nge-DDoS
+                    task.wait(0.3)
+                    
+                    if not egg or not egg.Parent then
+                        EggHunter.eggsCollected = EggHunter.eggsCollected + 1
                     end
                 end
             end
-            task.wait(0.5) -- Jeda bentar sebelum nyari telur ronde selanjutnya
+            task.wait(0.5)
         end
         EggHunter.UpdateStatus("Status: Stopped")
     end)
