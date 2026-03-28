@@ -157,7 +157,7 @@ task.spawn(function()
     while isRunning do
         cachedEggs = FindAllEggs()
         if ServerCountLabel then
-            ServerCountLabel.Text = "Telur di Server ada: " .. #cachedEggs
+            ServerCountLabel.Text = "Telur di Server: " .. #cachedEggs
         end
         task.wait(1)
     end
@@ -210,7 +210,7 @@ TpBtn.MouseButton1Click:Connect(function()
             end)
             
             -- Tahan pasungan selama 0.5 detik penuh
-            task.wait(2)
+            task.wait(5)
             
             -- Lepasin pasungannya
             tpLock:Disconnect()
