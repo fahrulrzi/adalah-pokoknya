@@ -6,7 +6,7 @@ local Player = Players.LocalPlayer
 -- 1. BIKIN GUI DASAR & SISTEM MINIMIZE
 -- ==========================================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "EasterEggHunterGUI"
+ScreenGui.Name = "EasterEggTeleporterGUI"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.IgnoreGuiInset = true 
 
@@ -26,8 +26,8 @@ ParentGUI()
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 250, 0, 140)
-MainFrame.Position = UDim2.new(0.5, 130, 0.5, -70) -- Gw geser dikit ke kanan biar ga numpuk kalo lu buka bareng script lain
-MainFrame.BackgroundColor3 = Color3.fromRGB(30, 20, 40) -- Warna agak ungu biar beda tema
+MainFrame.Position = UDim2.new(0.5, 130, 0.5, -70)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 20, 40)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Parent = ScreenGui
@@ -61,7 +61,7 @@ end)
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 30)
 Title.BackgroundTransparency = 1
-Title.Text = "🥚 Easter Egg Hunter"
+Title.Text = "🥚 Egg Teleporter"
 Title.TextColor3 = Color3.fromRGB(255, 200, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 16
@@ -71,31 +71,21 @@ local Status = Instance.new("TextLabel")
 Status.Size = UDim2.new(1, -20, 0, 40)
 Status.Position = UDim2.new(0, 10, 0, 35)
 Status.BackgroundTransparency = 1
-Status.Text = "Status: Idle\nEggs Collected: 0"
+Status.Text = "Status: Idle\nEggs on Map: Scanning..."
 Status.TextColor3 = Color3.fromRGB(200, 200, 200)
 Status.Font = Enum.Font.Gotham
 Status.TextSize = 13
 Status.Parent = MainFrame
 
-local StartBtn = Instance.new("TextButton")
-StartBtn.Size = UDim2.new(0, 100, 0, 35)
-StartBtn.Position = UDim2.new(0, 15, 1, -45)
-StartBtn.BackgroundColor3 = Color3.fromRGB(150, 80, 200)
-StartBtn.Text = "START"
-StartBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-StartBtn.Font = Enum.Font.GothamBold
-StartBtn.Parent = MainFrame
-Instance.new("UICorner", StartBtn).CornerRadius = UDim.new(0, 6)
-
-local StopBtn = Instance.new("TextButton")
-StopBtn.Size = UDim2.new(0, 100, 0, 35)
-StopBtn.Position = UDim2.new(1, -115, 1, -45)
-StopBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 69)
-StopBtn.Text = "STOP"
-StopBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-StopBtn.Font = Enum.Font.GothamBold
-StopBtn.Parent = MainFrame
-Instance.new("UICorner", StopBtn).CornerRadius = UDim.new(0, 6)
+local NextBtn = Instance.new("TextButton")
+NextBtn.Size = UDim2.new(1, -30, 0, 35)
+NextBtn.Position = UDim2.new(0, 15, 1, -45)
+NextBtn.BackgroundColor3 = Color3.fromRGB(150, 80, 200)
+NextBtn.Text = "TELEPORT TO NEXT EGG"
+NextBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+NextBtn.Font = Enum.Font.GothamBold
+NextBtn.Parent = MainFrame
+Instance.new("UICorner", NextBtn).CornerRadius = UDim.new(0, 6)
 
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Size = UDim2.new(0, 25, 0, 25)
@@ -119,7 +109,7 @@ Instance.new("UICorner", MinimizeBtn).CornerRadius = UDim.new(0, 5)
 
 local OpenBtn = Instance.new("TextButton")
 OpenBtn.Size = UDim2.new(0, 45, 0, 45)
-OpenBtn.Position = UDim2.new(1, -60, 0.5, -22) -- Di pinggir kanan layar biar ga nabrak tombol map
+OpenBtn.Position = UDim2.new(1, -60, 0.5, -22)
 OpenBtn.BackgroundColor3 = Color3.fromRGB(40, 20, 50)
 OpenBtn.Text = "🥚"
 OpenBtn.TextSize = 20
@@ -132,27 +122,24 @@ MinimizeBtn.MouseButton1Click:Connect(function()
     MainFrame.Visible = false
     OpenBtn.Visible = true
 end)
-
 OpenBtn.MouseButton1Click:Connect(function()
     MainFrame.Visible = true
     OpenBtn.Visible = false
 end)
 
 -- ==========================================
--- 2. LOGIKA EASTER EGG HUNTER
+-- 2. LOGIKA TELEPORT MANUAL
 -- ==========================================
-local EggHunter = {
-    isHunting = false,
-    eggsCollected = 0
+local EggTeleporter = {
+    currentIndex = 1
 }
 
-function EggHunter.UpdateStatus(text)
-    Status.Text = text .. "\nEggs Collected: " .. EggHunter.eggsCollected
+function EggTeleporter.UpdateStatus(text)
+    Status.Text = text
 end
 
-function EggHunter.FindEggs()
+function EggTeleporter.FindEggs()
     local foundEggs = {}
-    -- Fokus nyari di dalem folder Geode biar ga berat nyecan seluruh map
     local geodeFolder = workspace:FindFirstChild("Geode")
     
     if geodeFolder then
@@ -162,7 +149,6 @@ function EggHunter.FindEggs()
             end
         end
     else
-        -- Backup plan kalo folder Geode ga ada
         for _, obj in ipairs(workspace:GetDescendants()) do
             if obj.Name == "EasterEgg" then
                 table.insert(foundEggs, obj)
@@ -170,99 +156,67 @@ function EggHunter.FindEggs()
         end
     end
     
-    return foundEggs
-end
-
-function EggHunter.Start()
-    if EggHunter.isHunting then return end
-    EggHunter.isHunting = true
-    EggHunter.UpdateStatus("Status: Starting...")
-
-    task.spawn(function()
-        while EggHunter.isHunting do
-            local eggs = EggHunter.FindEggs()
-
-            if #eggs == 0 then
-                EggHunter.UpdateStatus("Status: Waiting for Eggs...")
-                task.wait(2)
-                continue
-            end
-
-            for i, egg in ipairs(eggs) do
-                if not EggHunter.isHunting then break end
-                if not egg or not egg.Parent then continue end
-
-                local char = Player.Character
-                local hrp = char and char:FindFirstChild("HumanoidRootPart")
-                
-                if hrp then
-                    EggHunter.UpdateStatus("Status: Collecting... ("..i.."/"..#eggs..")")
-                    
-                    -- Cari Part spesifik yang punya TouchInterest hasil dari Spy lu
-                    local targetPart = nil
-                    for _, desc in ipairs(egg:GetDescendants()) do
-                        if desc:IsA("BasePart") and desc:FindFirstChild("TouchInterest") then
-                            targetPart = desc
-                            break
-                        end
-                    end
-                    
-                    -- Jaga-jaga kalo strukturnya ganti, ambil part apa aja
-                    if not targetPart then
-                        targetPart = egg:FindFirstChildWhichIsA("BasePart", true)
-                    end
-                    
-                    if targetPart then
-                        -- 1. Jalur VIP Executor (Kalo executor lu beneran support)
-                        if firetouchinterest then
-                            pcall(function()
-                                firetouchinterest(hrp, targetPart, 0)
-                                task.wait(0.01)
-                                firetouchinterest(hrp, targetPart, 1)
-                            end)
-                        end
-                        
-                        -- 2. JURUS WIGGLE DANCE (Solusi ampuh buat Executor Mobile)
-                        -- Kita paksa karakter naik turun nembus telur biar fisika Roblox ke-trigger
-                        local targetCFrame = targetPart.CFrame
-                        
-                        for j = 1, 4 do
-                            hrp.Velocity = Vector3.zero
-                            -- Loncat ke atas telur
-                            hrp.CFrame = targetCFrame * CFrame.new(0, 3, 0) 
-                            task.wait(0.05)
-                            -- Hajar ke dalem tanah nembus telur
-                            hrp.CFrame = targetCFrame * CFrame.new(0, -1, 0) 
-                            task.wait(0.05)
-                        end
-                    end
-                    
-                    -- Kasih napas bentar buat server ngirim item ke tas
-                    task.wait(0.4)
-                    
-                    -- Cek kalo telurnya udah sukses ilang dari map
-                    if not egg or not egg.Parent then
-                        EggHunter.eggsCollected = EggHunter.eggsCollected + 1
-                    end
-                end
-            end
-            task.wait(0.5)
+    -- Filter telor yang masih valid (belum hancur/diambil orang)
+    local validEggs = {}
+    for _, egg in ipairs(foundEggs) do
+        if egg and egg.Parent then
+            table.insert(validEggs, egg)
         end
-        EggHunter.UpdateStatus("Status: Stopped")
-    end)
+    end
+    
+    return validEggs
 end
 
-function EggHunter.Stop()
-    EggHunter.isHunting = false
-    EggHunter.UpdateStatus("Status: Stopping...")
+function EggTeleporter.TeleportNext()
+    local eggs = EggTeleporter.FindEggs()
+    
+    if #eggs == 0 then
+        EggTeleporter.UpdateStatus("Status: Idle\nEggs on Map: 0 (Waiting for spawn...)")
+        EggTeleporter.currentIndex = 1
+        return
+    end
+
+    -- Kalo index kebablasan (misal telurnya sisa 3 tapi index kita di 4), reset ke 1
+    if EggTeleporter.currentIndex > #eggs then
+        EggTeleporter.currentIndex = 1
+    end
+
+    local targetEgg = eggs[EggTeleporter.currentIndex]
+    local char = Player.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    
+    if hrp and targetEgg then
+        local targetPos = nil
+        if targetEgg:IsA("Model") then
+            targetPos = targetEgg:GetPivot().Position
+        elseif targetEgg:IsA("BasePart") then
+            targetPos = targetEgg.Position
+        end
+        
+        if targetPos then
+            -- Teleport karakter tepat di atas telur sedikit (biar ga nyangkut)
+            hrp.CFrame = CFrame.new(targetPos + Vector3.new(0, 3, 0))
+            
+            EggTeleporter.UpdateStatus("Status: Teleported to Egg!\nProgress: " .. EggTeleporter.currentIndex .. " / " .. #eggs)
+            
+            -- Majuin index buat klik selanjutnya
+            EggTeleporter.currentIndex = EggTeleporter.currentIndex + 1
+        end
+    else
+        EggTeleporter.UpdateStatus("Status: Error\nEggs on Map: Character/Egg not found!")
+    end
 end
+
+-- Update awal pas script dijalanin
+task.spawn(function()
+    local initialEggs = EggTeleporter.FindEggs()
+    EggTeleporter.UpdateStatus("Status: Ready\nEggs on Map: " .. #initialEggs)
+end)
 
 -- ==========================================
 -- 3. KONEKSI TOMBOL
 -- ==========================================
-StartBtn.MouseButton1Click:Connect(EggHunter.Start)
-StopBtn.MouseButton1Click:Connect(EggHunter.Stop)
+NextBtn.MouseButton1Click:Connect(EggTeleporter.TeleportNext)
 CloseBtn.MouseButton1Click:Connect(function()
-    EggHunter.Stop()
     ScreenGui:Destroy()
 end)
