@@ -1,12 +1,13 @@
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 local Player = Players.LocalPlayer
 
 -- ==========================================
 -- 1. BIKIN GUI DASAR & SISTEM MINIMIZE
 -- ==========================================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "ManualEggTeleporter"
+ScreenGui.Name = "ManualEggTeleporterTween"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.IgnoreGuiInset = true 
 
@@ -126,11 +127,12 @@ OpenBtn.MouseButton1Click:Connect(function()
 end)
 
 -- ==========================================
--- 2. LOGIKA UTAMA & ANTI RUBBER-BAND
+-- 2. LOGIKA TWEENING (TERBANG) KE TELUR
 -- ==========================================
 local isRunning = true
 local currentEggIndex = 1
 local cachedEggs = {}
+local isFlying = false -- Mencegah tombol dipencet dobel pas lagi terbang
 
 local function FindAllEggs()
     local found = {}
@@ -152,26 +154,30 @@ local function FindAllEggs()
     return found
 end
 
--- Background loop buat update jumlah telur
+-- Background loop buat update jumlah telur di UI
 task.spawn(function()
     while isRunning do
         cachedEggs = FindAllEggs()
         if ServerCountLabel then
-            ServerCountLabel.Text = "Telur di Server: " .. #cachedEggs
+            ServerCountLabel.Text = "Telur di Server ada: " .. #cachedEggs
         end
         task.wait(1)
     end
 end)
 
-local RunService = game:GetService("RunService")
-
--- TOMBOL TELEPORT: Murni manual, dipencet baru jalan 1x
+-- ==========================================
+-- 3. EKSEKUSI TWEENING
+-- ==========================================
 TpBtn.MouseButton1Click:Connect(function()
+    if isFlying then return end -- Blokir klik kalo karakter masih OTW terbang
+    
     cachedEggs = FindAllEggs()
     
     if #cachedEggs == 0 then
         TpBtn.Text = "KOSONG! Nunggu..."
-        task.delay(1.5, function() TpBtn.Text = "TELEPORT (1x)" end)
+        task.delay(1.5, function() 
+            if not isFlying then TpBtn.Text = "TELEPORT (1x)" end
+        end)
         return
     end
 
@@ -192,34 +198,47 @@ TpBtn.MouseButton1Click:Connect(function()
         end
         
         if targetPos then
-            TpBtn.Text = "MAKSA TP..."
+            isFlying = true
+            TpBtn.Text = "OTW TERBANG..."
+            TpBtn.BackgroundColor3 = Color3.fromRGB(180, 120, 50)
             
+            -- Teleport 3 studs di atas telur biar ga nyangkut di tanah
             local targetCFrame = CFrame.new(targetPos + Vector3.new(0, 3, 0))
+            local distance = (hrp.Position - targetPos).Magnitude
             
-            -- ==========================================
-            -- JURUS BARU: PASUNG CFrame (Anti-Rubberband Ultimate)
-            -- Kita spam posisi ke server tiap frame (60x sedetik)
-            -- ==========================================
-            hrp.Anchored = true -- Kunci karakter biar ga jatuh/terbang
-            local tpTime = 0
+            -- Set kecepatan terbang (Studs per detik). 150 = ngebut tapi aman dari anti-cheat.
+            local speed = 150
+            local timeToReach = distance / speed
             
-            local tpLock = RunService.Heartbeat:Connect(function(dt)
-                hrp.CFrame = targetCFrame
-                hrp.Velocity = Vector3.zero
-                tpTime = tpTime + dt
+            -- Kalo jaraknya udah deket, langsung sekejap aja (0.1 detik)
+            if distance < 50 then
+                timeToReach = 0.1
+            end
+
+            -- Bikin efek terbang nembus map
+            local tweenInfo = TweenInfo.new(timeToReach, Enum.EasingStyle.Linear)
+            local tween = TweenService:Create(hrp, tweenInfo, {CFrame = targetCFrame})
+            
+            -- Bekuin fisika karakter biar bisa ngesot terbang mulus nembus halangan
+            hrp.Anchored = true
+            tween:Play()
+            
+            -- Tunggu sampe karakter mendarat di telur
+            tween.Completed:Connect(function()
+                hrp.Anchored = false -- Balikin fisika normal biar bisa gerak lagi
+                isFlying = false
+                currentEggIndex = currentEggIndex + 1
+                
+                TpBtn.Text = "SUKSES TP!"
+                TpBtn.BackgroundColor3 = Color3.fromRGB(50, 180, 80)
+                
+                task.delay(0.8, function() 
+                    if not isFlying then 
+                        TpBtn.Text = "TELEPORT (1x)" 
+                        TpBtn.BackgroundColor3 = Color3.fromRGB(120, 60, 180)
+                    end
+                end)
             end)
-            
-            -- Tahan pasungan selama 0.5 detik penuh
-            task.wait(5)
-            
-            -- Lepasin pasungannya
-            tpLock:Disconnect()
-            hrp.Anchored = false
-            
-            currentEggIndex = currentEggIndex + 1
-            
-            TpBtn.Text = "SUKSES TP!"
-            task.delay(0.5, function() TpBtn.Text = "TELEPORT (1x)" end)
         end
     end
 end)
