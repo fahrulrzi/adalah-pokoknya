@@ -211,23 +211,10 @@ function TreasureHunter.getPan()
     return nil
 end
 
--- Fungsi Reset Auto Pan versi Cabut-Colok
-function TreasureHunter.ResetAutoPan(pan)
-    -- 1. Copot Pan (Toggle Unequip pake remote bawaan gamenya)
-    if pan then
-        print("[TreasureHunter] Mencopot Pan biar Auto kereset OFF...")
-        pcall(function()
-            ReplicatedStorage.Remotes.CustomBackpack.EquipRemote:FireServer(pan)
-        end)
-        task.wait(0.8) -- Kasih jeda lumayan biar server beneran masukin ke tas
-    end
-    
-    -- 2. Pegang lagi Pan-nya
-    print("[TreasureHunter] Equip ulang Pan...")
-    local newPan = TreasureHunter.getPan()
-    task.wait(0.8) -- Tunggu UI MobileDig muncul lagi di layar
-    
-    -- 3. Karena sekarang PASTI OFF, kita tembak 1x biar jadi ON
+-- ==========================================
+-- FUNGSI RESET AUTO PAN VERSI SMART PING (ANTI-DESYNC)
+-- ==========================================
+function TreasureHunter.ResetAutoPan()
     local playerGui = Player:FindFirstChild("PlayerGui")
     if not playerGui then return end
     
@@ -237,22 +224,60 @@ function TreasureHunter.ResetAutoPan(pan)
         if mobileDig then
             local autoBtn = mobileDig:FindFirstChild("AutoButton")
             
-            if autoBtn then
-                print("[TreasureHunter] Nembak tombol Auto Pan 1x biar langsung ON!")
-                pcall(function()
-                    if firesignal then
-                        firesignal(autoBtn.MouseButton1Click)
-                    elseif getconnections then
-                        for _, conn in ipairs(getconnections(autoBtn.MouseButton1Click)) do
-                            conn:Function()
+            if autoBtn and autoBtn:IsA("ImageButton") then
+                
+                -- Helper fungsi klik biar rapi
+                local function clickBtn()
+                    pcall(function()
+                        if firesignal then
+                            firesignal(autoBtn.MouseButton1Click)
+                        elseif getconnections then
+                            for _, conn in ipairs(getconnections(autoBtn.MouseButton1Click)) do
+                                conn:Function()
+                            end
                         end
+                    end)
+                end
+
+                -- Cek warna awal pas baru kelar teleport
+                local startColor = autoBtn.ImageColor3
+                local isOff = startColor.R > 0.5 -- R > 0.5 itu Abu-abu (OFF)
+                
+                if isOff then
+                    -- Kasus 1: Emang jujur lagi OFF (Abu-abu)
+                    print("[TreasureHunter] UI Abu-abu (OFF). Gas klik 1x biar ON!")
+                    clickBtn()
+                else
+                    -- Kasus 2: UI Hitam (Bisa Normal, bisa Desync)
+                    print("[TreasureHunter] UI Hitam. Ngetes ini normal atau Desync...")
+                    
+                    -- Pancing klik 1x
+                    clickBtn() 
+                    
+                    -- Kasih waktu 0.3 detik buat UI nge-update warnanya
+                    task.wait(0.3) 
+                    
+                    -- Cek warna sekarang setelah dipancing
+                    local afterColor = autoBtn.ImageColor3
+                    local becameOff = afterColor.R > 0.5
+                    
+                    if becameOff then
+                        -- Kalo berubah Abu-abu, berarti tadi sebenernya Normal (dan kita ga sengaja matiin)
+                        print("[TreasureHunter] Berubah Abu-abu! Ternyata tadi normal. Klik 1x lagi balikin ke ON.")
+                        clickBtn()
+                    else
+                        -- Kalo tetep Hitam, berarti beneran Desync dan klik tadi udah benerin sistemnya
+                        print("[TreasureHunter] Tetep Hitam! Fix tadi Desync, sekarang udah jalan lagi.")
                     end
-                end)
+                end
+            else
+                warn("[TreasureHunter] AutoButton ga ketemu atau bukan ImageButton!")
             end
         end
     end
 end
 
+    
 function TreasureHunter.huntSingleMap(map)
     local character = Player.Character
     if not character or not character:FindFirstChild("HumanoidRootPart") or not character:FindFirstChild("Humanoid") then 
