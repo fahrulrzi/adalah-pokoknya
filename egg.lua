@@ -163,6 +163,8 @@ task.spawn(function()
     end
 end)
 
+local RunService = game:GetService("RunService")
+
 -- TOMBOL TELEPORT: Murni manual, dipencet baru jalan 1x
 TpBtn.MouseButton1Click:Connect(function()
     cachedEggs = FindAllEggs()
@@ -192,14 +194,27 @@ TpBtn.MouseButton1Click:Connect(function()
         if targetPos then
             TpBtn.Text = "MAKSA TP..."
             
-            -- JURUS ANTI-RUBBERBAND (Kirim data 4x ke server)
             local targetCFrame = CFrame.new(targetPos + Vector3.new(0, 3, 0))
             
-            for i = 1, 4 do
+            -- ==========================================
+            -- JURUS BARU: PASUNG CFrame (Anti-Rubberband Ultimate)
+            -- Kita spam posisi ke server tiap frame (60x sedetik)
+            -- ==========================================
+            hrp.Anchored = true -- Kunci karakter biar ga jatuh/terbang
+            local tpTime = 0
+            
+            local tpLock = RunService.Heartbeat:Connect(function(dt)
                 hrp.CFrame = targetCFrame
-                hrp.Velocity = Vector3.new(0, 0, 0)
-                task.wait(0.05)
-            end
+                hrp.Velocity = Vector3.zero
+                tpTime = tpTime + dt
+            end)
+            
+            -- Tahan pasungan selama 0.5 detik penuh
+            task.wait(0.5)
+            
+            -- Lepasin pasungannya
+            tpLock:Disconnect()
+            hrp.Anchored = false
             
             currentEggIndex = currentEggIndex + 1
             
