@@ -159,13 +159,13 @@ task.spawn(function()
     while isRunning do
         cachedEggs = FindAllEggs()
         if ServerCountLabel then
-            ServerCountLabel.Text = "Telur di Server: " .. #cachedEggs
+            ServerCountLabel.Text = "Telur di Server adaa: " .. #cachedEggs
         end
         task.wait(1)
     end
 end)
 
--- TOMBOL TELEPORT: Murni manual, pake trik Seated Bypass
+-- TOMBOL TELEPORT: Ngesot/Gliding Legal
 TpBtn.MouseButton1Click:Connect(function()
     cachedEggs = FindAllEggs()
     
@@ -182,7 +182,7 @@ TpBtn.MouseButton1Click:Connect(function()
     local targetEgg = cachedEggs[currentEggIndex]
     local char = Player.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    local hum = char and char:FindFirstChild("Humanoid")
     
     if hrp and hum and targetEgg and targetEgg.Parent then
         local targetPos = nil
@@ -193,49 +193,81 @@ TpBtn.MouseButton1Click:Connect(function()
         end
         
         if targetPos then
-            TpBtn.Text = "TELEPORTING..."
+            TpBtn.Text = "OTW MELUNCUR..."
             TpBtn.BackgroundColor3 = Color3.fromRGB(180, 120, 50)
             
-            local targetCFrame = CFrame.new(targetPos + Vector3.new(0, 3, 0))
+            -- Posisi tujuan (dilebihin 2 studs ke atas)
+            local targetDest = targetPos + Vector3.new(0, 2, 0)
+            local distance = (hrp.Position - targetDest).Magnitude
             
-            -- ==========================================
-            -- JURUS BYPASS: STATUS DUDUK (SEATED)
-            -- Ngelabuin server biar ngira kita naik kendaraan
-            -- ==========================================
-            local oldWS = hum.WalkSpeed
-            local oldJP = hum.JumpPower
-            
-            -- Bekuin pergerakan & paksa duduk
-            hum.WalkSpeed = 0
-            hum.JumpPower = 0
-            hum:ChangeState(Enum.HumanoidStateType.Seated)
-            
-            -- Kasih napas 0.1 detik biar server nyatet kalo kita beneran lagi duduk
-            task.wait(3)
-            
-            -- Paksa pindah 3x ke telur pas lagi "duduk"
-            for i = 1, 3 do
-                hrp.CFrame = targetCFrame
-                hrp.Velocity = Vector3.zero
-                hrp.RotVelocity = Vector3.zero
-                task.wait(0.05)
+            -- Kalo jaraknya kejauhan banget (> 500 studs), kasih tau user
+            if distance > 500 then
+                TpBtn.Text = "KEJAUHAN! JALAN DULU"
+                task.delay(2, function() TpBtn.Text = "TELEPORT (1x)" end)
+                return
             end
+
+            -- ==========================================
+            -- GLIDING AMAN ANTI-CHEAT (Max 45 Studs/detik)
+            -- ==========================================
+            local oldPlatformStand = hum.PlatformStand
+            hum.PlatformStand = true -- Bikin mode terbang
             
-            -- Tunggu bentar sampe server stabil
-            task.wait(0.2)
+            -- Matiin nabrak tembok
+            local noclip
+            noclip = game:GetService("RunService").Stepped:Connect(function()
+                for _, v in ipairs(char:GetDescendants()) do
+                    if v:IsA("BasePart") then v.CanCollide = false end
+                end
+            end)
+
+            local bp = Instance.new("BodyPosition")
+            bp.MaxForce = Vector3.new(100000, 100000, 100000)
+            bp.P = 1500
+            bp.D = 200
+            bp.Position = targetDest
+            bp.Parent = hrp
             
-            -- Bangunin karakter & balikin jalan normal
-            hum.WalkSpeed = oldWS
-            hum.JumpPower = oldJP
-            hum:ChangeState(Enum.HumanoidStateType.GettingUp)
-            
-            currentEggIndex = currentEggIndex + 1
-            
-            TpBtn.Text = "SUKSES TP!"
-            TpBtn.BackgroundColor3 = Color3.fromRGB(50, 180, 80)
-            task.delay(0.8, function() 
-                TpBtn.Text = "TELEPORT (1x)" 
-                TpBtn.BackgroundColor3 = Color3.fromRGB(120, 60, 180)
+            local bg = Instance.new("BodyGyro")
+            bg.MaxTorque = Vector3.new(100000, 100000, 100000)
+            bg.CFrame = hrp.CFrame
+            bg.Parent = hrp
+
+            task.spawn(function()
+                -- Nunggu sampe deket sama telur (jarak < 4 studs) atau timeout 15 detik
+                local startFly = tick()
+                while tick() - startFly < 15 do
+                    if (hrp.Position - targetDest).Magnitude < 4 then
+                        break
+                    end
+                    task.wait(0.1)
+                end
+                
+                -- Bersihin efek terbang
+                bp:Destroy()
+                bg:Destroy()
+                noclip:Disconnect()
+                hum.PlatformStand = oldPlatformStand
+                hrp.Velocity = Vector3.zero
+                
+                -- Auto senggol telurnya biar ga usah gerak manual lagi
+                local eggPart = targetEgg:IsA("BasePart") and targetEgg or targetEgg:FindFirstChildWhichIsA("BasePart")
+                if eggPart and firetouchinterest then
+                    pcall(function()
+                        firetouchinterest(hrp, eggPart, 0)
+                        task.wait(0.01)
+                        firetouchinterest(hrp, eggPart, 1)
+                    end)
+                end
+                
+                currentEggIndex = currentEggIndex + 1
+                
+                TpBtn.Text = "SAMPE!"
+                TpBtn.BackgroundColor3 = Color3.fromRGB(50, 180, 80)
+                task.delay(1, function() 
+                    TpBtn.Text = "TELEPORT (1x)" 
+                    TpBtn.BackgroundColor3 = Color3.fromRGB(120, 60, 180)
+                end)
             end)
         end
     end
