@@ -24,7 +24,7 @@ print("✅ Game Valid! Memanggil Script V8...")
 -- 2. PANGGIL SCRIPT UTAMA (V8)
 -- Pastikan isi dari link ini adalah script V8 PURE yang udah lu benerin kemaren
 local success, err = pcall(function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/fahrulrzi/adalah-pokoknya/refs/heads/main/eggv2.lua"))()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/KuliJawa-Maker/ojis/refs/heads/main/game/129827112113663.lua"))()
 end)
 
 -- Kalo linknya mati atau gagal ke-load, kasih tau errornya
