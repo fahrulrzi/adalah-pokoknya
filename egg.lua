@@ -6,48 +6,49 @@ local RunService = game:GetService("RunService")
 local StarterGui = game:GetService("StarterGui")
 local Player = Players.LocalPlayer
 
--- Tunggu player load (Jaga-jaga kalo game agak ngelag)
-while not Player do
-    task.wait(0.5)
+-- Tunggu player load dengan aman
+if not Player then
+    Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
     Player = Players.LocalPlayer
 end
 
 -- ==========================================
 -- GLOBAL SETTINGS
 -- ==========================================
-_G.ESPToggled = _G.ESPToggled or false
+_G.ESPToggled = false
+_G.MagnetToggled = false -- Default OFF biar ga bikin crash pas awal
 _G.IsWorking = false
 
 local espTextTable = {} 
 local espVisualTable = {} 
-
 local ESP_COLOR = Color3.fromRGB(0, 255, 255)
-local MAGNET_RADIUS = 20 -- Jarak sedot otomatis
+local MAGNET_RADIUS = 25 -- Jarak sedot
 
 -- ==========================================
--- 1. UI COMPACT & MINIMIZE (BULLETPROOF PARENTING)
+-- 1. UI COMPACT & MINIMIZE (ANTI-CRASH)
 -- ==========================================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "CompactEggHunterV5_Fix"
+ScreenGui.Name = "CompactEggHunterV6"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.IgnoreGuiInset = true 
 
--- CARA AMAN NARUH UI DI EXECUTOR MOBILE
-local uiTarget = nil
-pcall(function() uiTarget = gethui() end)
-if not uiTarget then pcall(function() uiTarget = game:GetService("CoreGui") end) end
-if not uiTarget then uiTarget = Player:WaitForChild("PlayerGui") end
+-- Fallback parenting UI super aman
+local uiParent
+pcall(function() uiParent = gethui() end)
+if not uiParent then pcall(function() uiParent = game:GetService("CoreGui") end) end
+if not uiParent then uiParent = Player:WaitForChild("PlayerGui", 5) end
 
-if uiTarget then
-    ScreenGui.Parent = uiTarget
+if uiParent then
+    ScreenGui.Parent = uiParent
 else
-    warn("GAGAL NARUH UI! Executor lu strict banget cuy.")
-    ScreenGui.Parent = Player:WaitForChild("PlayerGui")
+    warn("Gagal nemu tempat buat naruh UI!")
+    return -- Kalo beneran gagal, stop scriptnya biar ga error
 end
 
+-- MAIN FRAME (Dipanjangin dikit jadi 140 biar muat 3 tombol)
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 180, 0, 110)
-MainFrame.Position = UDim2.new(0.95, -185, 0.5, -55)
+MainFrame.Size = UDim2.new(0, 180, 0, 140)
+MainFrame.Position = UDim2.new(0.95, -185, 0.5, -70)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 20, 30)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -75,7 +76,7 @@ end)
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 22)
 Title.BackgroundTransparency = 1
-Title.Text = "🥚 EGG HUNTER V5.1"
+Title.Text = "🥚 EGG HUNTER V6"
 Title.TextColor3 = Color3.fromRGB(200, 255, 200)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 12
@@ -91,17 +92,31 @@ ServerCountLabel.Font = Enum.Font.GothamMedium
 ServerCountLabel.TextSize = 10
 ServerCountLabel.Parent = MainFrame
 
+-- TOMBOL ESP (On/Off)
 local EspBtn = Instance.new("TextButton")
 EspBtn.Size = UDim2.new(1, -10, 0, 25)
 EspBtn.Position = UDim2.new(0, 5, 0, 45)
-EspBtn.BackgroundColor3 = _G.ESPToggled and Color3.fromRGB(50, 150, 50) or Color3.fromRGB(150, 50, 50)
-EspBtn.Text = _G.ESPToggled and "ESP: ON" or "ESP: OFF"
+EspBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+EspBtn.Text = "ESP: OFF"
 EspBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 EspBtn.Font = Enum.Font.GothamBold
 EspBtn.TextSize = 11
 EspBtn.Parent = MainFrame
 Instance.new("UICorner", EspBtn).CornerRadius = UDim.new(0, 4)
 
+-- TOMBOL MAGNET (On/Off)
+local MagnetBtn = Instance.new("TextButton")
+MagnetBtn.Size = UDim2.new(1, -10, 0, 25)
+MagnetBtn.Position = UDim2.new(0, 5, 0, 75)
+MagnetBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+MagnetBtn.Text = "MAGNET: OFF"
+MagnetBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MagnetBtn.Font = Enum.Font.GothamBold
+MagnetBtn.TextSize = 11
+MagnetBtn.Parent = MainFrame
+Instance.new("UICorner", MagnetBtn).CornerRadius = UDim.new(0, 4)
+
+-- TOMBOL AUTO-GRAB
 local ActionBtn = Instance.new("TextButton")
 ActionBtn.Size = UDim2.new(1, -10, 0, 30)
 ActionBtn.Position = UDim2.new(0, 5, 1, -35)
@@ -113,6 +128,7 @@ ActionBtn.TextSize = 11
 ActionBtn.Parent = MainFrame
 Instance.new("UICorner", ActionBtn).CornerRadius = UDim.new(0, 4)
 
+-- TOMBOL X & MINIMIZE
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Size = UDim2.new(0, 18, 0, 18)
 CloseBtn.Position = UDim2.new(1, -22, 0, 2)
@@ -150,7 +166,7 @@ MinimizeBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false OpenB
 OpenBtn.MouseButton1Click:Connect(function() MainFrame.Visible = true OpenBtn.Visible = false end)
 
 -- ==========================================
--- 2. LOGIKA ESP BUGS FIX
+-- 2. LOGIKA ESP & PENCARI TELUR
 -- ==========================================
 local function FindAllEggs()
     local found = {}
@@ -216,6 +232,12 @@ EspBtn.MouseButton1Click:Connect(function()
     if not _G.ESPToggled then ClearAllESP() end
 end)
 
+MagnetBtn.MouseButton1Click:Connect(function()
+    _G.MagnetToggled = not _G.MagnetToggled
+    MagnetBtn.Text = _G.MagnetToggled and "MAGNET: ON" or "MAGNET: OFF"
+    MagnetBtn.BackgroundColor3 = _G.MagnetToggled and Color3.fromRGB(150, 100, 30) or Color3.fromRGB(150, 50, 50)
+end)
+
 RunService.RenderStepped:Connect(function()
     if _G.ESPToggled then
         local char = Player.Character
@@ -231,12 +253,6 @@ RunService.RenderStepped:Connect(function()
                     billboard.TextElement.Text = "[egg]\n[" .. tostring(math.floor(dist)) .. "]"
                 end
             end
-        else
-            for egg, billboard in pairs(espTextTable) do
-                if egg.Parent and billboard.Parent and billboard:FindFirstChild("TextElement") then
-                    billboard.TextElement.Text = "[egg]\n[---]"
-                end
-            end
         end
     end
 end)
@@ -249,19 +265,22 @@ task.spawn(function()
         local currentEggs = FindAllEggs()
         if ServerCountLabel then ServerCountLabel.Text = "Server: " .. #currentEggs end
         
-        local char = Player.Character
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            for _, egg in ipairs(currentEggs) do
-                local eggPos = egg:IsA("Model") and egg:GetPivot().Position or egg.Position
-                if (hrp.Position - eggPos).Magnitude <= MAGNET_RADIUS then
-                    local eggPart = egg:IsA("BasePart") and egg or egg:FindFirstChildWhichIsA("BasePart")
-                    if eggPart and firetouchinterest then
-                        pcall(function()
-                            firetouchinterest(hrp, eggPart, 0)
-                            task.wait(0.01)
-                            firetouchinterest(hrp, eggPart, 1)
-                        end)
+        -- MAGNET AURA (Cuma jalan kalo tombol di-ON-in)
+        if _G.MagnetToggled then
+            local char = Player.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                for _, egg in ipairs(currentEggs) do
+                    local eggPos = egg:IsA("Model") and egg:GetPivot().Position or egg.Position
+                    if (hrp.Position - eggPos).Magnitude <= MAGNET_RADIUS then
+                        local eggPart = egg:IsA("BasePart") and egg or egg:FindFirstChildWhichIsA("BasePart")
+                        if eggPart and firetouchinterest then
+                            pcall(function()
+                                firetouchinterest(hrp, eggPart, 0)
+                                task.wait(0.01)
+                                firetouchinterest(hrp, eggPart, 1)
+                            end)
+                        end
                     end
                 end
             end
@@ -327,7 +346,7 @@ ActionBtn.MouseButton1Click:Connect(function()
                 
                 if destWP and sourceWP and destWP ~= sourceWP then
                     ActionBtn.Text = "🛑 FT OTW..."
-                    FastTravelRemote:FireServer(sourceWP, destWP)
+                    pcall(function() FastTravelRemote:FireServer(sourceWP, destWP) end)
                     task.wait(2.5) 
                 end
                 
@@ -335,7 +354,7 @@ ActionBtn.MouseButton1Click:Connect(function()
                 ActionBtn.Text = "🛑 LARI..."
                 
                 local path = PathfindingService:CreatePath({AgentRadius = 3, AgentHeight = 5, AgentCanJump = true, WaypointSpacing = 4})
-                local success, errorMessage = pcall(function() path:ComputeAsync(hrp.Position, targetPos) end)
+                local success = pcall(function() path:ComputeAsync(hrp.Position, targetPos) end)
                 
                 if success and path.Status == Enum.PathStatus.Success then
                     local waypoints = path:GetWaypoints()
@@ -368,12 +387,6 @@ end)
 
 CloseBtn.MouseButton1Click:Connect(function() _G.IsWorking = false ClearAllESP() ScreenGui:Destroy() end)
 
--- KASIH NOTIFIKASI BIAR TAU SCRIPTNYA JALAN
 pcall(function()
-    StarterGui:SetCore("SendNotification", {
-        Title = "Egg Hunter V5.1",
-        Text = "UI Berhasil di-load ngab! Cek pojok kanan.",
-        Duration = 5,
-    })
+    StarterGui:SetCore("SendNotification", {Title = "Egg Hunter", Text = "V6 Load Sukses! Magnet Default OFF", Duration = 3})
 end)
-print("✅ EGG HUNTER V5.1 BERHASIL DI-EXECUTE!")
