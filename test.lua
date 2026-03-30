@@ -335,7 +335,19 @@ end
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "LoginUI"
 ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = game:GetService("CoreGui") or game.Players.LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.IgnoreGuiInset = true 
+
+-- Sistem naruh UI Anti-Crash
+local uiParent
+pcall(function() uiParent = gethui() end)
+if not uiParent then pcall(function() uiParent = game:GetService("CoreGui") end) end
+if not uiParent then uiParent = game.Players.LocalPlayer:WaitForChild("PlayerGui") end
+
+if uiParent then
+    ScreenGui.Parent = uiParent
+else
+    warn("Gagal nemu tempat naruh UI Login!")
+end
 
 local Frame = Instance.new("Frame")
 Frame.Size = UDim2.new(0, 300, 0, 150)
