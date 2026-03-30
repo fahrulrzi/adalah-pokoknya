@@ -6,7 +6,6 @@ local RunService = game:GetService("RunService")
 local StarterGui = game:GetService("StarterGui")
 local Player = Players.LocalPlayer
 
--- Tunggu player load dengan aman
 if not Player then
     Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
     Player = Players.LocalPlayer
@@ -16,36 +15,28 @@ end
 -- GLOBAL SETTINGS
 -- ==========================================
 _G.ESPToggled = false
-_G.MagnetToggled = false -- Default OFF biar ga bikin crash pas awal
+_G.MagnetToggled = false
 _G.IsWorking = false
 
 local espTextTable = {} 
-local espVisualTable = {} 
 local ESP_COLOR = Color3.fromRGB(0, 255, 255)
-local MAGNET_RADIUS = 25 -- Jarak sedot
+local MAGNET_RADIUS = 25 
 
 -- ==========================================
--- 1. UI COMPACT & MINIMIZE (ANTI-CRASH)
+-- 1. UI COMPACT & MINIMIZE
 -- ==========================================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "CompactEggHunterV6"
+ScreenGui.Name = "CompactEggHunterV7"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.IgnoreGuiInset = true 
 
--- Fallback parenting UI super aman
 local uiParent
 pcall(function() uiParent = gethui() end)
 if not uiParent then pcall(function() uiParent = game:GetService("CoreGui") end) end
 if not uiParent then uiParent = Player:WaitForChild("PlayerGui", 5) end
 
-if uiParent then
-    ScreenGui.Parent = uiParent
-else
-    warn("Gagal nemu tempat buat naruh UI!")
-    return -- Kalo beneran gagal, stop scriptnya biar ga error
-end
+if uiParent then ScreenGui.Parent = uiParent else return end
 
--- MAIN FRAME (Dipanjangin dikit jadi 140 biar muat 3 tombol)
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 180, 0, 140)
 MainFrame.Position = UDim2.new(0.95, -185, 0.5, -70)
@@ -76,7 +67,7 @@ end)
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 22)
 Title.BackgroundTransparency = 1
-Title.Text = "🥚 EGG HUNTER V6"
+Title.Text = "🥚 EGG HUNTER V7"
 Title.TextColor3 = Color3.fromRGB(200, 255, 200)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 12
@@ -92,7 +83,6 @@ ServerCountLabel.Font = Enum.Font.GothamMedium
 ServerCountLabel.TextSize = 10
 ServerCountLabel.Parent = MainFrame
 
--- TOMBOL ESP (On/Off)
 local EspBtn = Instance.new("TextButton")
 EspBtn.Size = UDim2.new(1, -10, 0, 25)
 EspBtn.Position = UDim2.new(0, 5, 0, 45)
@@ -104,7 +94,6 @@ EspBtn.TextSize = 11
 EspBtn.Parent = MainFrame
 Instance.new("UICorner", EspBtn).CornerRadius = UDim.new(0, 4)
 
--- TOMBOL MAGNET (On/Off)
 local MagnetBtn = Instance.new("TextButton")
 MagnetBtn.Size = UDim2.new(1, -10, 0, 25)
 MagnetBtn.Position = UDim2.new(0, 5, 0, 75)
@@ -116,7 +105,6 @@ MagnetBtn.TextSize = 11
 MagnetBtn.Parent = MainFrame
 Instance.new("UICorner", MagnetBtn).CornerRadius = UDim.new(0, 4)
 
--- TOMBOL AUTO-GRAB
 local ActionBtn = Instance.new("TextButton")
 ActionBtn.Size = UDim2.new(1, -10, 0, 30)
 ActionBtn.Position = UDim2.new(0, 5, 1, -35)
@@ -128,7 +116,6 @@ ActionBtn.TextSize = 11
 ActionBtn.Parent = MainFrame
 Instance.new("UICorner", ActionBtn).CornerRadius = UDim.new(0, 4)
 
--- TOMBOL X & MINIMIZE
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Size = UDim2.new(0, 18, 0, 18)
 CloseBtn.Position = UDim2.new(1, -22, 0, 2)
@@ -166,43 +153,33 @@ MinimizeBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false OpenB
 OpenBtn.MouseButton1Click:Connect(function() MainFrame.Visible = true OpenBtn.Visible = false end)
 
 -- ==========================================
--- 2. LOGIKA ESP & PENCARI TELUR
+-- 2. LOGIKA ESP (RADAR FIX 100%)
 -- ==========================================
 local function FindAllEggs()
     local found = {}
-    local geodeFolder = workspace:FindFirstChild("Geode")
-    if geodeFolder then
-        for _, obj in ipairs(geodeFolder:GetChildren()) do if obj.Name == "EasterEgg" and obj.Parent then table.insert(found, obj) end end
-    else
-        for _, obj in ipairs(workspace:GetDescendants()) do if obj.Name == "EasterEgg" and obj.Parent then table.insert(found, obj) end end
+    -- FIX MAUT: Kita scan SELURUH map tanpa kecuali pake GetDescendants
+    -- Biar sekecil apapun sub-foldernya, telurnya bakal tetep ketarik!
+    for _, obj in ipairs(workspace:GetDescendants()) do 
+        if obj.Name == "EasterEgg" and obj.Parent then 
+            table.insert(found, obj) 
+        end 
     end
     return found
 end
 
 local function ClearAllESP()
     for obj, billboard in pairs(espTextTable) do if billboard and billboard.Parent then billboard:Destroy() end end
-    for obj, highlight in pairs(espVisualTable) do if highlight and highlight.Parent then highlight:Destroy() end end
     espTextTable = {}
-    espVisualTable = {}
     
     for _, egg in ipairs(FindAllEggs()) do
         if egg:FindFirstChild("EggESP_Text") then egg.EggESP_Text:Destroy() end
-        if egg:FindFirstChild("EggESP_Vis") then egg.EggESP_Vis:Destroy() end
     end
 end
 
 local function CreateESPText(obj)
     if obj:FindFirstChild("EggESP_Text") then return end
 
-    local highlight = Instance.new("Highlight")
-    highlight.Name = "EggESP_Vis"
-    highlight.FillColor = ESP_COLOR
-    highlight.FillTransparency = 0.7
-    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-    highlight.Adornee = obj
-    highlight.Parent = obj
-    espVisualTable[obj] = highlight
-
+    -- Kita ga pake Highlight lagi biar ga kena limit 31 objek dari Roblox
     local billboard = Instance.new("BillboardGui")
     billboard.Name = "EggESP_Text"
     billboard.Size = UDim2.new(0, 80, 0, 40)
@@ -265,7 +242,6 @@ task.spawn(function()
         local currentEggs = FindAllEggs()
         if ServerCountLabel then ServerCountLabel.Text = "Server: " .. #currentEggs end
         
-        -- MAGNET AURA (Cuma jalan kalo tombol di-ON-in)
         if _G.MagnetToggled then
             local char = Player.Character
             local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -289,10 +265,9 @@ task.spawn(function()
         if _G.ESPToggled then
             for _, egg in ipairs(currentEggs) do CreateESPText(egg) end
             for egg, _ in pairs(espTextTable) do if not egg.Parent then espTextTable[egg] = nil end end
-            for egg, _ in pairs(espVisualTable) do if not egg.Parent then espVisualTable[egg] = nil end end
         end
         
-        task.wait(0.5)
+        task.wait(1) -- Dikasih jeda 1 detik biar map scan-nya ga bikin HP panas
     end
 end)
 
@@ -387,6 +362,4 @@ end)
 
 CloseBtn.MouseButton1Click:Connect(function() _G.IsWorking = false ClearAllESP() ScreenGui:Destroy() end)
 
-pcall(function()
-    StarterGui:SetCore("SendNotification", {Title = "Egg Hunter", Text = "V6 Load Sukses! Magnet Default OFF", Duration = 3})
-end)
+pcall(function() StarterGui:SetCore("SendNotification", {Title = "Egg Hunter V7", Text = "Radar Diperluas 100%! Limit Breaker ON.", Duration = 4}) end)
