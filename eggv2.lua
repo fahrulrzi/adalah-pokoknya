@@ -1,3 +1,8 @@
+if _G.AuthToken_EggHunter ~= "KuliJawa_M4nt4p_2026" then
+    game.Players.LocalPlayer:Kick("❌ KETAHUAN NYOLONG SCRIPT! Pake Loadernya kocak!")
+    return
+end
+
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local PathfindingService = game:GetService("PathfindingService")
@@ -70,7 +75,7 @@ end)
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 22)
 Title.BackgroundTransparency = 1
-Title.Text = "🥚 EGG HUNTER V8"
+Title.Text = "🥚 EGG HUNTER"
 Title.TextColor3 = Color3.fromRGB(200, 255, 200)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 12
