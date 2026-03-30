@@ -3,7 +3,14 @@ local UserInputService = game:GetService("UserInputService")
 local PathfindingService = game:GetService("PathfindingService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
 local Player = Players.LocalPlayer
+
+-- Tunggu player load (Jaga-jaga kalo game agak ngelag)
+while not Player do
+    task.wait(0.5)
+    Player = Players.LocalPlayer
+end
 
 -- ==========================================
 -- GLOBAL SETTINGS
@@ -15,19 +22,28 @@ local espTextTable = {}
 local espVisualTable = {} 
 
 local ESP_COLOR = Color3.fromRGB(0, 255, 255)
-local MAGNET_RADIUS = 20 -- Jarak sedot otomatis (makin gede makin jauh nyedotnya)
+local MAGNET_RADIUS = 20 -- Jarak sedot otomatis
 
 -- ==========================================
--- 1. UI COMPACT & MINIMIZE
+-- 1. UI COMPACT & MINIMIZE (BULLETPROOF PARENTING)
 -- ==========================================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "CompactEggHunterV5"
+ScreenGui.Name = "CompactEggHunterV5_Fix"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.IgnoreGuiInset = true 
 
-local success, target = pcall(function() return gethui() end)
-if success and target then ScreenGui.Parent = target
-else pcall(function() ScreenGui.Parent = game:GetService("CoreGui") end) or pcall(function() ScreenGui.Parent = Player:WaitForChild("PlayerGui") end) end
+-- CARA AMAN NARUH UI DI EXECUTOR MOBILE
+local uiTarget = nil
+pcall(function() uiTarget = gethui() end)
+if not uiTarget then pcall(function() uiTarget = game:GetService("CoreGui") end) end
+if not uiTarget then uiTarget = Player:WaitForChild("PlayerGui") end
+
+if uiTarget then
+    ScreenGui.Parent = uiTarget
+else
+    warn("GAGAL NARUH UI! Executor lu strict banget cuy.")
+    ScreenGui.Parent = Player:WaitForChild("PlayerGui")
+end
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 180, 0, 110)
@@ -59,7 +75,7 @@ end)
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 22)
 Title.BackgroundTransparency = 1
-Title.Text = "🥚 EGG HUNTER V5"
+Title.Text = "🥚 EGG HUNTER V5.1"
 Title.TextColor3 = Color3.fromRGB(200, 255, 200)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 12
@@ -147,14 +163,12 @@ local function FindAllEggs()
     return found
 end
 
--- FIX: Fungsi bersihin ESP secara total dari akar-akarnya
 local function ClearAllESP()
     for obj, billboard in pairs(espTextTable) do if billboard and billboard.Parent then billboard:Destroy() end end
     for obj, highlight in pairs(espVisualTable) do if highlight and highlight.Parent then highlight:Destroy() end end
     espTextTable = {}
     espVisualTable = {}
     
-    -- Jaga-jaga kalo masih ada nyangkut
     for _, egg in ipairs(FindAllEggs()) do
         if egg:FindFirstChild("EggESP_Text") then egg.EggESP_Text:Destroy() end
         if egg:FindFirstChild("EggESP_Vis") then egg.EggESP_Vis:Destroy() end
@@ -192,7 +206,7 @@ local function CreateESPText(obj)
     textLabel.TextStrokeTransparency = 0
     textLabel.Parent = billboard
 
-    espTextTable[obj] = billboard -- FIX: Simpan wadahnya biar bisa di-destroy bersih
+    espTextTable[obj] = billboard
 end
 
 EspBtn.MouseButton1Click:Connect(function()
@@ -202,14 +216,12 @@ EspBtn.MouseButton1Click:Connect(function()
     if not _G.ESPToggled then ClearAllESP() end
 end)
 
--- FIX UPDATE DISTANCE: Aman walau mati/respawn
 RunService.RenderStepped:Connect(function()
     if _G.ESPToggled then
         local char = Player.Character
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
         local hum = char and char:FindFirstChildOfClass("Humanoid")
         
-        -- Cek kalo player masih idup dan utuh
         if hrp and hum and hum.Health > 0 then
             local hrpPos = hrp.Position
             for egg, billboard in pairs(espTextTable) do
@@ -220,7 +232,6 @@ RunService.RenderStepped:Connect(function()
                 end
             end
         else
-            -- Kalo mati, jaraknya ditutup aja biar ga stuck
             for egg, billboard in pairs(espTextTable) do
                 if egg.Parent and billboard.Parent and billboard:FindFirstChild("TextElement") then
                     billboard.TextElement.Text = "[egg]\n[---]"
@@ -238,7 +249,6 @@ task.spawn(function()
         local currentEggs = FindAllEggs()
         if ServerCountLabel then ServerCountLabel.Text = "Server: " .. #currentEggs end
         
-        -- MAGNET AURA: Otomatis nyedot telur yang masuk radius 20 studs
         local char = Player.Character
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
         if hrp then
@@ -257,14 +267,13 @@ task.spawn(function()
             end
         end
         
-        -- Update ESP Visuals
         if _G.ESPToggled then
             for _, egg in ipairs(currentEggs) do CreateESPText(egg) end
             for egg, _ in pairs(espTextTable) do if not egg.Parent then espTextTable[egg] = nil end end
             for egg, _ in pairs(espVisualTable) do if not egg.Parent then espVisualTable[egg] = nil end end
         end
         
-        task.wait(0.5) -- Jalan tiap setengah detik
+        task.wait(0.5)
     end
 end)
 
@@ -332,10 +341,7 @@ ActionBtn.MouseButton1Click:Connect(function()
                     local waypoints = path:GetWaypoints()
                     for i, wp in ipairs(waypoints) do
                         if not _G.IsWorking then break end
-                        
-                        -- FIX: Cek kalo telur udah keambil sama magnet di tengah jalan, langsung skip jalan kakinya!
                         if not targetEgg.Parent then break end 
-
                         if wp.Action == Enum.PathWaypointAction.Jump then hum.Jump = true end
                         hum:MoveTo(wp.Position)
                         local timeout = 2
@@ -361,3 +367,13 @@ ActionBtn.MouseButton1Click:Connect(function()
 end)
 
 CloseBtn.MouseButton1Click:Connect(function() _G.IsWorking = false ClearAllESP() ScreenGui:Destroy() end)
+
+-- KASIH NOTIFIKASI BIAR TAU SCRIPTNYA JALAN
+pcall(function()
+    StarterGui:SetCore("SendNotification", {
+        Title = "Egg Hunter V5.1",
+        Text = "UI Berhasil di-load ngab! Cek pojok kanan.",
+        Duration = 5,
+    })
+end)
+print("✅ EGG HUNTER V5.1 BERHASIL DI-EXECUTE!")
