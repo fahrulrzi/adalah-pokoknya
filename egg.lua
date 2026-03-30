@@ -6,40 +6,32 @@ local RunService = game:GetService("RunService")
 local Player = Players.LocalPlayer
 
 -- ==========================================
--- GLOBAL SETTINGS (Biar ga ilang pas re-run)
+-- GLOBAL SETTINGS
 -- ==========================================
 _G.ESPToggled = _G.ESPToggled or false
-_G.IsWorking = false -- Status Auto-Walk/Hybrid
+_G.IsWorking = false
 
-local espTextTable = {} -- Buat nyimpen TextLabel ESP biar bisa di-update jaraknya
-local espVisualTable = {} -- Buat nyimpen Highlight/Visual ESP
+local espTextTable = {} 
+local espVisualTable = {} 
 
--- ==========================================
--- SETTING WARNA ESP (Silakan ganti kalo mau)
--- ==========================================
-local ESP_COLOR = Color3.fromRGB(0, 255, 255) -- Warna Cyan cerah buat teks & highlight
-local ESP_TEXT_SIZE = 12
+local ESP_COLOR = Color3.fromRGB(0, 255, 255)
+local MAGNET_RADIUS = 20 -- Jarak sedot otomatis (makin gede makin jauh nyedotnya)
 
 -- ==========================================
--- 1. BIKIN GUI COMPACT & MINIMIZE (Tetep ada)
+-- 1. UI COMPACT & MINIMIZE
 -- ==========================================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "CompactEggHunterESPText"
+ScreenGui.Name = "CompactEggHunterV5"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.IgnoreGuiInset = true 
 
 local success, target = pcall(function() return gethui() end)
-if success and target then
-    ScreenGui.Parent = target
-else
-    local coreSuccess = pcall(function() ScreenGui.Parent = game:GetService("CoreGui") end)
-    if not coreSuccess then ScreenGui.Parent = Player:WaitForChild("PlayerGui") end
-end
+if success and target then ScreenGui.Parent = target
+else pcall(function() ScreenGui.Parent = game:GetService("CoreGui") end) or pcall(function() ScreenGui.Parent = Player:WaitForChild("PlayerGui") end) end
 
--- MAIN FRAME (180x110 Mojok Kanan)
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 180, 0, 110)
-MainFrame.Position = UDim2.new(0.95, -185, 0.5, -55) -- Mojok kanan tengah
+MainFrame.Position = UDim2.new(0.95, -185, 0.5, -55)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 20, 30)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -47,7 +39,6 @@ MainFrame.Parent = ScreenGui
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 6)
 Instance.new("UIStroke", MainFrame).Color = Color3.fromRGB(50, 60, 80)
 
--- Sistem Drag GUI
 local dragging, dragInput, dragStart, startPos
 MainFrame.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = true dragStart = input.Position startPos = MainFrame.Position end
@@ -68,7 +59,7 @@ end)
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 22)
 Title.BackgroundTransparency = 1
-Title.Text = "🥚 EGG HUNTER LITE"
+Title.Text = "🥚 EGG HUNTER V5"
 Title.TextColor3 = Color3.fromRGB(200, 255, 200)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 12
@@ -84,7 +75,6 @@ ServerCountLabel.Font = Enum.Font.GothamMedium
 ServerCountLabel.TextSize = 10
 ServerCountLabel.Parent = MainFrame
 
--- TOMBOL ESP (On/Off)
 local EspBtn = Instance.new("TextButton")
 EspBtn.Size = UDim2.new(1, -10, 0, 25)
 EspBtn.Position = UDim2.new(0, 5, 0, 45)
@@ -96,7 +86,6 @@ EspBtn.TextSize = 11
 EspBtn.Parent = MainFrame
 Instance.new("UICorner", EspBtn).CornerRadius = UDim.new(0, 4)
 
--- TOMBOL HYBRID ACTION (1x Grab)
 local ActionBtn = Instance.new("TextButton")
 ActionBtn.Size = UDim2.new(1, -10, 0, 30)
 ActionBtn.Position = UDim2.new(0, 5, 1, -35)
@@ -108,7 +97,6 @@ ActionBtn.TextSize = 11
 ActionBtn.Parent = MainFrame
 Instance.new("UICorner", ActionBtn).CornerRadius = UDim.new(0, 4)
 
--- TOMBOL CLOSE (X)
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Size = UDim2.new(0, 18, 0, 18)
 CloseBtn.Position = UDim2.new(1, -22, 0, 2)
@@ -120,7 +108,6 @@ CloseBtn.TextSize = 10
 CloseBtn.Parent = MainFrame
 Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 4)
 
--- TOMBOL MINIMIZE (-)
 local MinimizeBtn = Instance.new("TextButton")
 MinimizeBtn.Size = UDim2.new(0, 18, 0, 18)
 MinimizeBtn.Position = UDim2.new(1, -44, 0, 2)
@@ -132,7 +119,6 @@ MinimizeBtn.TextSize = 12
 MinimizeBtn.Parent = MainFrame
 Instance.new("UICorner", MinimizeBtn).CornerRadius = UDim.new(0, 4)
 
--- TOMBOL OPEN (Muncul pas diminimize)
 local OpenBtn = Instance.new("TextButton")
 OpenBtn.Size = UDim2.new(0, 30, 0, 30)
 OpenBtn.Position = UDim2.new(1, -35, 0.5, -15)
@@ -148,14 +134,8 @@ MinimizeBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false OpenB
 OpenBtn.MouseButton1Click:Connect(function() MainFrame.Visible = true OpenBtn.Visible = false end)
 
 -- ==========================================
--- 2. LOGIKA ESP TEXT + DISTANCEStuds
+-- 2. LOGIKA ESP BUGS FIX
 -- ==========================================
-local function ClearAllESP()
-    for obj, visual in pairs(espVisualTable) do if visual.Parent then visual:Destroy() end end
-    espVisualTable = {}
-    espTextTable = {} -- Hapus data textlabel juga
-end
-
 local function FindAllEggs()
     local found = {}
     local geodeFolder = workspace:FindFirstChild("Geode")
@@ -167,11 +147,23 @@ local function FindAllEggs()
     return found
 end
 
--- Fungsi inti bikin ESP Text melayang nembus tembok
-local function CreateESPText(obj)
-    if obj:FindFirstChild("EggESP_Text") then return end -- Ga usah bikin dobel
+-- FIX: Fungsi bersihin ESP secara total dari akar-akarnya
+local function ClearAllESP()
+    for obj, billboard in pairs(espTextTable) do if billboard and billboard.Parent then billboard:Destroy() end end
+    for obj, highlight in pairs(espVisualTable) do if highlight and highlight.Parent then highlight:Destroy() end end
+    espTextTable = {}
+    espVisualTable = {}
+    
+    -- Jaga-jaga kalo masih ada nyangkut
+    for _, egg in ipairs(FindAllEggs()) do
+        if egg:FindFirstChild("EggESP_Text") then egg.EggESP_Text:Destroy() end
+        if egg:FindFirstChild("EggESP_Vis") then egg.EggESP_Vis:Destroy() end
+    end
+end
 
-    -- 1. Jaga-jaga: Bikin Highlight tipis nembus tembok biar bentuk itemnya keliatan
+local function CreateESPText(obj)
+    if obj:FindFirstChild("EggESP_Text") then return end
+
     local highlight = Instance.new("Highlight")
     highlight.Name = "EggESP_Vis"
     highlight.FillColor = ESP_COLOR
@@ -181,81 +173,105 @@ local function CreateESPText(obj)
     highlight.Parent = obj
     espVisualTable[obj] = highlight
 
-    -- 2. Bikin BillboardGui (Wadah tulisan melayang nembus tembok)
     local billboard = Instance.new("BillboardGui")
     billboard.Name = "EggESP_Text"
-    billboard.Size = UDim2.new(0, 80, 0, 40) -- Ukuran wadah teks
-    billboard.StudsOffset = Vector3.new(0, 3, 0) -- Jarak melayang di atas item (3 studs)
-    billboard.AlwaysOnTop = true -- KUNCI: Keliatan nembus tembok
+    billboard.Size = UDim2.new(0, 80, 0, 40)
+    billboard.StudsOffset = Vector3.new(0, 3, 0)
+    billboard.AlwaysOnTop = true
     billboard.Adornee = obj
     billboard.Parent = obj
     
-    -- 3. Bikin TextLabel (Isi tulisannya)
     local textLabel = Instance.new("TextLabel")
+    textLabel.Name = "TextElement"
     textLabel.Size = UDim2.new(1, 0, 1, 0)
     textLabel.BackgroundTransparency = 1
-    textLabel.Text = "[egg]\n[calc...]" -- Text awal nunggu update
+    textLabel.Text = "[egg]\n[...]"
     textLabel.TextColor3 = ESP_COLOR
-    textLabel.Font = Enum.Font.GothamBold -- Font keren & jelas
-    textLabel.TextSize = ESP_TEXT_SIZE
-    textLabel.TextStrokeTransparency = 0 -- Outline teks biar jelas di background terang
-    textLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+    textLabel.Font = Enum.Font.GothamBold
+    textLabel.TextSize = 12
+    textLabel.TextStrokeTransparency = 0
     textLabel.Parent = billboard
 
-    -- Simpan TextLabel ke table biar bisa di-update jaraknya di loop RenderStepped
-    espTextTable[obj] = textLabel
+    espTextTable[obj] = billboard -- FIX: Simpan wadahnya biar bisa di-destroy bersih
 end
 
--- Update fungsi tombol ESP
-local function UpdateESPState()
+EspBtn.MouseButton1Click:Connect(function()
     _G.ESPToggled = not _G.ESPToggled
     EspBtn.Text = _G.ESPToggled and "ESP: ON" or "ESP: OFF"
     EspBtn.BackgroundColor3 = _G.ESPToggled and Color3.fromRGB(50, 150, 50) or Color3.fromRGB(150, 50, 50)
-    
     if not _G.ESPToggled then ClearAllESP() end
-end
-EspBtn.MouseButton1Click:Connect(UpdateESPState)
+end)
 
--- [UPDATE LOOP BARU]: Loop super kenceng tiap frame buat update ANGKA JARAK mulus
+-- FIX UPDATE DISTANCE: Aman walau mati/respawn
 RunService.RenderStepped:Connect(function()
-    if _G.ESPToggled and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-        local hrpPos = Player.Character.HumanoidRootPart.Position
+    if _G.ESPToggled then
+        local char = Player.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
         
-        -- Loop semua telur yang terdaftar di ESP Text table
-        for egg, textLabel in pairs(espTextTable) do
-            if egg.Parent and textLabel.Parent then
-                -- Hitung jarak studs (integer/math.floor biar ga ada koma) Magnitude
-                local eggPos = egg:IsA("Model") and egg:GetPivot().Position or egg.Position
-                local dist = (hrpPos - eggPos).Magnitude
-                
-                -- Sesuai request: Line 1 [egg], Line 2 [angka_jarak]
-                textLabel.Text = "[egg]\n[" .. tostring(math.floor(dist)) .. "]"
+        -- Cek kalo player masih idup dan utuh
+        if hrp and hum and hum.Health > 0 then
+            local hrpPos = hrp.Position
+            for egg, billboard in pairs(espTextTable) do
+                if egg.Parent and billboard.Parent and billboard:FindFirstChild("TextElement") then
+                    local eggPos = egg:IsA("Model") and egg:GetPivot().Position or egg.Position
+                    local dist = (hrpPos - eggPos).Magnitude
+                    billboard.TextElement.Text = "[egg]\n[" .. tostring(math.floor(dist)) .. "]"
+                end
+            end
+        else
+            -- Kalo mati, jaraknya ditutup aja biar ga stuck
+            for egg, billboard in pairs(espTextTable) do
+                if egg.Parent and billboard.Parent and billboard:FindFirstChild("TextElement") then
+                    billboard.TextElement.Text = "[egg]\n[---]"
+                end
             end
         end
     end
 end)
 
--- Loop background update data telur baru tiap 2 detik
+-- ==========================================
+-- 3. BACKGROUND LOOP (Telor + MAGNET AURA)
+-- ==========================================
 task.spawn(function()
     while MainFrame.Parent do
+        local currentEggs = FindAllEggs()
+        if ServerCountLabel then ServerCountLabel.Text = "Server: " .. #currentEggs end
+        
+        -- MAGNET AURA: Otomatis nyedot telur yang masuk radius 20 studs
+        local char = Player.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            for _, egg in ipairs(currentEggs) do
+                local eggPos = egg:IsA("Model") and egg:GetPivot().Position or egg.Position
+                if (hrp.Position - eggPos).Magnitude <= MAGNET_RADIUS then
+                    local eggPart = egg:IsA("BasePart") and egg or egg:FindFirstChildWhichIsA("BasePart")
+                    if eggPart and firetouchinterest then
+                        pcall(function()
+                            firetouchinterest(hrp, eggPart, 0)
+                            task.wait(0.01)
+                            firetouchinterest(hrp, eggPart, 1)
+                        end)
+                    end
+                end
+            end
+        end
+        
+        -- Update ESP Visuals
         if _G.ESPToggled then
-            local currentEggs = FindAllEggs()
-            -- Tambah ESP Text ke telur baru
             for _, egg in ipairs(currentEggs) do CreateESPText(egg) end
-            
-            -- Hapus data dari table kalo telurnya udah ilang (destroynya diurus Roblox)
             for egg, _ in pairs(espTextTable) do if not egg.Parent then espTextTable[egg] = nil end end
             for egg, _ in pairs(espVisualTable) do if not egg.Parent then espVisualTable[egg] = nil end end
         end
-        task.wait(2)
+        
+        task.wait(0.5) -- Jalan tiap setengah detik
     end
 end)
 
 -- ==========================================
--- 3. LOGIKA HYBRID (Kemaren Tetep Pake)
+-- 4. LOGIKA HYBRID TP + JALAN
 -- ==========================================
 local currentEggIndex = 1
-local cachedEggs = {}
 local FastTravelRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Misc"):WaitForChild("FastTravel")
 local WaypointsFolder = workspace:WaitForChild("Map"):WaitForChild("Waypoints")
 
@@ -271,26 +287,18 @@ local function GetClosestWaypoint(targetPosition)
     return closestWP
 end
 
-task.spawn(function()
-    while MainFrame.Parent do
-        cachedEggs = FindAllEggs()
-        if ServerCountLabel then ServerCountLabel.Text = "Server: " .. #cachedEggs end
-        task.wait(1)
-    end
-end)
-
 ActionBtn.MouseButton1Click:Connect(function()
     if _G.IsWorking then _G.IsWorking = false ActionBtn.Text = "STOPPING..." return end
     
-    cachedEggs = FindAllEggs()
-    if #cachedEggs == 0 then
+    local cEggs = FindAllEggs()
+    if #cEggs == 0 then
         ActionBtn.Text = "KOSONG!"
         task.delay(1.5, function() if not _G.IsWorking then ActionBtn.Text = "AUTO-NGEGRAB (1x)" end end)
         return
     end
 
-    if currentEggIndex > #cachedEggs then currentEggIndex = 1 end
-    local targetEgg = cachedEggs[currentEggIndex]
+    if currentEggIndex > #cEggs then currentEggIndex = 1 end
+    local targetEgg = cEggs[currentEggIndex]
     
     local char = Player.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -324,20 +332,20 @@ ActionBtn.MouseButton1Click:Connect(function()
                     local waypoints = path:GetWaypoints()
                     for i, wp in ipairs(waypoints) do
                         if not _G.IsWorking then break end
+                        
+                        -- FIX: Cek kalo telur udah keambil sama magnet di tengah jalan, langsung skip jalan kakinya!
+                        if not targetEgg.Parent then break end 
+
                         if wp.Action == Enum.PathWaypointAction.Jump then hum.Jump = true end
                         hum:MoveTo(wp.Position)
                         local timeout = 2
                         local startTimer = tick()
-                        repeat task.wait(0.1) until not _G.IsWorking or (hrp.Position - wp.Position).Magnitude < 3 or (tick() - startTimer) > timeout
+                        repeat task.wait(0.1) until not _G.IsWorking or not targetEgg.Parent or (hrp.Position - wp.Position).Magnitude < 3 or (tick() - startTimer) > timeout
                     end
                     
                     if _G.IsWorking then
                         _G.IsWorking = false
                         currentEggIndex = currentEggIndex + 1
-                        local eggPart = targetEgg:IsA("BasePart") and targetEgg or targetEgg:FindFirstChildWhichIsA("BasePart")
-                        if eggPart and firetouchinterest then
-                            pcall(function() firetouchinterest(hrp, eggPart, 0) task.wait(0.05) firetouchinterest(hrp, eggPart, 1) end)
-                        end
                         ActionBtn.Text = "SAMPE! (NEXT)"
                         ActionBtn.BackgroundColor3 = Color3.fromRGB(50, 180, 80)
                         task.delay(1.5, function() if not _G.IsWorking then ActionBtn.Text = "AUTO-NGEGRAB (1x)" ActionBtn.BackgroundColor3 = Color3.fromRGB(60, 120, 180) end end)
