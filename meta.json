@@ -1,0 +1,12 @@
+{
+  "audio_hash": "e003c1119eab79e0560a8bf478ff1d01cdbaaf3b2cea35bec6477121b6a1fd6c",
+  "viz_kind": "piano_roll",
+  "settings_version": "v2",
+  "generated_at": 1775027935.8660386,
+  "midi_hash": null,
+  "config_signature": "363ea6543214c39cd324ac8be2badb61bcd2cecc5522426129201ec2f36d4663",
+  "artifact_prefix": "transcription_5709_20260401-071855_Di_Akhir_Perang_-_Nadin_Amizah_Lirik_Lagu_-_Indolirik_visualization_piano_piano_roll",
+  "artifact_timestamp": "20260401-071855",
+  "generator": "placeholder",
+  "error": "No MIDI file available for visualization"
+}
