@@ -4290,9 +4290,9 @@ function SimpleUI:CreateButton(Page, Text, Callback, Options)
             TextColor3 = "TextPrimary",
             Font = "FontSecondary"
         },
-        -- [Arrow] = {
-        --     ImageColor3 = "TextPrimary"
-        -- }
+        [Arrow] = {
+            ImageColor3 = "TextPrimary"
+        }
     }
     if Description then
         ThemeBindings[Description] = {
@@ -11554,7 +11554,7 @@ local function initializeMainTab()
     CoordLabel.TextColor3 = Color3.fromRGB(0, 255, 255) -- Warna Neon Cyan lu
     CoordLabel.TextSize = 14
     CoordLabel.Font = Enum.Font.GothamMedium
-    CoordLabel.Text = "📍 Dig: Belum disave   |   💧 Wash: Belum disave"
+    CoordLabel.Text = "📍 Dig: Unknown   |   💧 Wash: Unknown"
     CoordLabel.Parent = AutoFarmSection.Container
 
     local function UpdateCoordLabel()
@@ -11584,17 +11584,15 @@ local function initializeMainTab()
     local DualBtnFrame = Instance.new("Frame")
     DualBtnFrame.Name = "DualButtonRow"
     
-    -- TADI: 36. SEKARANG: 46 (Ada lebihan 10 pixel buat Margin Bawah)
-    DualBtnFrame.Size = UDim2.new(1, 0, 0, 46) 
+    DualBtnFrame.Size = UDim2.new(1, 0, 0, 40) 
     DualBtnFrame.BackgroundTransparency = 1
     DualBtnFrame.Parent = AutoFarmSection.Container
 
     local RowLayout = Instance.new("UIListLayout")
     RowLayout.FillDirection = Enum.FillDirection.Horizontal
     RowLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    RowLayout.Padding = UDim.new(0, 10) -- Jarak horizontal antar 2 tombol
+    RowLayout.Padding = UDim.new(0, 10)
     
-    -- 🔥 BARIS SAKTI: Biar tombol nempel di atas dan nyisain ruang kosong di bawah
     RowLayout.VerticalAlignment = Enum.VerticalAlignment.Top 
     RowLayout.Parent = DualBtnFrame
 
