@@ -11590,7 +11590,7 @@ local function initializeMainTab()
     local RowLayout = Instance.new("UIListLayout")
     RowLayout.FillDirection = Enum.FillDirection.Horizontal
     RowLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    RowLayout.Padding = UDim.new(0, 10, 10, 10)
+    RowLayout.Padding = UDim.new(10, 10)
     RowLayout.Parent = DualBtnFrame
 
     -- =========================================================
@@ -11663,22 +11663,9 @@ local function initializeMainTab()
         BarrierRemovalModule.removeCrocodiles()
     end)
 
-    SimpleUI:CreateParagraph(AutoFarmSection.Container, "How Automated Farm Works",
-        {"Configure your movement method, set digging and washing locations, then activate the system to begin the continuous cycle.",
-         {
-            Text = "Teleport mode is significantly faster and recommended for efficiency.",
-            IsSubField = true
-        }, {
-            Text = "You must stand within the correct region before saving each location to ensure proper positioning.",
-            IsSubField = true
-        }, {
-            Text = "Use Unstuck Character if movement freezes or the tweening animation becomes unresponsive.",
-            IsSubField = true
-        }})
-
     local SellSection = SimpleUI:CreateSection(RightPage, "Auto Sell", {
         Style = "box",
-        Icon = "rbxassetid://2246496691",
+        -- Icon = "rbxassetid://2246496691",
         DefaultExpanded = true,
         TextSize = 15
     })
