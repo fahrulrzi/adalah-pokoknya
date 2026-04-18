@@ -11452,84 +11452,84 @@ local window = SimpleUI:CreateWindow({
 local Tabs = {
     Main = SimpleUI:CreateTab(window, "Main", {
         Description = "Auto Farm and Auto Sell",
-        Icon = {
-            Image = "rbxassetid://10734975692",
-            Size = UDim2.new(0, 16, 0, 16),
-            ImageColor3 = Color3.fromRGB(255, 255, 255)
-        },
+        -- Icon = {
+        --     Image = "rbxassetid://10734975692",
+        --     Size = UDim2.new(0, 16, 0, 16),
+        --     ImageColor3 = Color3.fromRGB(255, 255, 255)
+        -- },
         DualScroll = true
     }),
     Hunting = SimpleUI:CreateTab(window, "Hunting", {
         Description = "Treasure map hunting and geode opening",
-        Icon = {
-            Image = "rbxassetid://16898613613",
-            Size = UDim2.new(0, 16, 0, 16),
-            ImageRectSize = Vector2.new(48, 48),
-            ImageRectOffset = Vector2.new(306, 771),
-            ImageColor3 = Color3.fromRGB(255, 255, 255)
-        },
+        -- Icon = {
+        --     Image = "rbxassetid://16898613613",
+        --     Size = UDim2.new(0, 16, 0, 16),
+        --     ImageRectSize = Vector2.new(48, 48),
+        --     ImageRectOffset = Vector2.new(306, 771),
+        --     ImageColor3 = Color3.fromRGB(255, 255, 255)
+        -- },
         DualScroll = true
     }),
     Teleport = SimpleUI:CreateTab(window, "Teleport", {
         Description = "Fast travel network, geode locations, and runes",
-        Icon = {
-            Image = "rbxassetid://16898613777",
-            Size = UDim2.new(0, 16, 0, 16),
-            ImageRectSize = Vector2.new(48, 48),
-            ImageRectOffset = Vector2.new(771, 98),
-            ImageColor3 = Color3.fromRGB(255, 255, 255)
-        },
+        -- Icon = {
+        --     Image = "rbxassetid://16898613777",
+        --     Size = UDim2.new(0, 16, 0, 16),
+        --     ImageRectSize = Vector2.new(48, 48),
+        --     ImageRectOffset = Vector2.new(771, 98),
+        --     ImageColor3 = Color3.fromRGB(255, 255, 255)
+        -- },
         DualScroll = true
     }),
     Tools = SimpleUI:CreateTab(window, "Tools", {
         Description = "Equipment reforging and tool enchantment",
-        Icon = {
-            Image = "rbxassetid://16898613044",
-            Size = UDim2.new(0, 16, 0, 16),
-            ImageRectSize = Vector2.new(48, 48),
-            ImageRectOffset = Vector2.new(771, 955),
-            ImageColor3 = Color3.fromRGB(255, 255, 255)
-        },
+        -- Icon = {
+        --     Image = "rbxassetid://16898613044",
+        --     Size = UDim2.new(0, 16, 0, 16),
+        --     ImageRectSize = Vector2.new(48, 48),
+        --     ImageRectOffset = Vector2.new(771, 955),
+        --     ImageColor3 = Color3.fromRGB(255, 255, 255)
+        -- },
         DualScroll = true
     }),
     Crafting = SimpleUI:CreateTab(window, "Crafting", {
         Description = "Equipment crafting and resource conversion",
-        Icon = {
-            Image = "rbxassetid://10723396542",
-            ImageColor3 = Color3.fromRGB(255, 255, 255)
-        }
+        -- Icon = {
+        --     Image = "rbxassetid://10723396542",
+        --     ImageColor3 = Color3.fromRGB(255, 255, 255)
+        -- }
     }),
     Favourite = SimpleUI:CreateTab(window, "Favourite", {
         Description = "Favourite valuable items",
-        Icon = {
-            Image = "rbxassetid://10734966248",
-            ImageColor3 = Color3.fromRGB(255, 255, 255)
-        }
+        -- Icon = {
+        --     Image = "rbxassetid://10734966248",
+        --     ImageColor3 = Color3.fromRGB(255, 255, 255)
+        -- }
     }),
     Shop = SimpleUI:CreateTab(window, "Shop", {
         Description = "Amazong - Credits: Jeff Bozo",
-        Icon = {
-            Image = "rbxassetid://10734952479",
-            ImageColor3 = Color3.fromRGB(255, 255, 255)
-        }
+        -- Icon = {
+        --     Image = "rbxassetid://10734952479",
+        --     ImageColor3 = Color3.fromRGB(255, 255, 255)
+        -- }
     }),
     Miscellaneous = SimpleUI:CreateTab(window, "Miscellaneous", {
         Description = "Excavation sites, environmental barriers, and utilities",
-        Icon = {
-            Image = "rbxassetid://10734963191",
-            ImageColor3 = Color3.fromRGB(255, 255, 255)
-        },
+        -- Icon = {
+        --     Image = "rbxassetid://10734963191",
+        --     ImageColor3 = Color3.fromRGB(255, 255, 255)
+        -- },
         DualScroll = true
     }),
     Settings = SimpleUI:CreateTab(window, "Settings", {
         Description = "Interface customization and control configuration",
-        Icon = {
-            Image = "rbxassetid://16898613777",
-            Size = UDim2.new(0, 16, 0, 16),
-            ImageRectSize = Vector2.new(48, 48),
-            ImageRectOffset = Vector2.new(771, 257),
-            ImageColor3 = Color3.fromRGB(255, 255, 255)
-        }
+        -- Icon = {
+        --     Image = "rbxassetid://16898613777",
+        --     Size = UDim2.new(0, 16, 0, 16),
+        --     ImageRectSize = Vector2.new(48, 48),
+        --     ImageRectOffset = Vector2.new(771, 257),
+        --     ImageColor3 = Color3.fromRGB(255, 255, 255)
+        -- }
     })
 }
 
@@ -11540,7 +11540,7 @@ local function initializeMainTab()
 
     local AutoFarmSection = SimpleUI:CreateSection(LeftPage, "Auto Farm", {
         Style = "box",
-        Icon = "rbxassetid://10789587520",
+        -- Icon = "rbxassetid://10789587520",
         DefaultExpanded = true,
         TextSize = 15
     })
@@ -11550,41 +11550,102 @@ local function initializeMainTab()
             State.AutoFarm.travelMode = selection
         end)
 
-    SimpleUI:CreateButton(AutoFarmSection.Container, "Save Dig Location", function()
+    -- =========================================================
+    -- 1. BIKIN KOTAK HORIZONTAL (2 KOLOM)
+    -- =========================================================
+    local DualBtnFrame = Instance.new("Frame")
+    DualBtnFrame.Name = "DualButtonRow"
+    DualBtnFrame.Size = UDim2.new(1, 0, 0, 36) -- Tinggi tombol
+    DualBtnFrame.BackgroundTransparency = 1
+    DualBtnFrame.Parent = AutoFarmSection.Container
+
+    local RowLayout = Instance.new("UIListLayout")
+    RowLayout.FillDirection = Enum.FillDirection.Horizontal
+    RowLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    RowLayout.Padding = UDim.new(0, 10) -- Jarak antar 2 tombol
+    RowLayout.Parent = DualBtnFrame
+
+    -- =========================================================
+    -- 2. BIKIN TEKS BUAT NAMPILIN KOORDINAT
+    -- =========================================================
+    local CoordLabel = Instance.new("TextLabel")
+    CoordLabel.Size = UDim2.new(1, 0, 0, 25)
+    CoordLabel.BackgroundTransparency = 1
+    CoordLabel.TextColor3 = Color3.fromRGB(0, 255, 255) -- Warna Neon Cyan lu
+    CoordLabel.TextSize = 12
+    CoordLabel.Font = Enum.Font.GothamMedium
+    CoordLabel.Text = "📍 Dig: Belum disave   |   💧 Wash: Belum disave"
+    CoordLabel.Parent = AutoFarmSection.Container
+
+    -- Fungsi buat update teks koordinat
+    local function UpdateCoordLabel()
+        local digText = "Belum disave"
+        local washText = "Belum disave"
+
+        if State.AutoFarm.sandCFrame then
+            local p = State.AutoFarm.sandCFrame.Position
+            digText = string.format("%.1f, %.1f, %.1f", p.X, p.Y, p.Z)
+        end
+        if State.AutoFarm.waterCFrame then
+            local p = State.AutoFarm.waterCFrame.Position
+            washText = string.format("%.1f, %.1f, %.1f", p.X, p.Y, p.Z)
+        end
+
+        CoordLabel.Text = "📍 Dig: " .. digText .. "   |   💧 Wash: " .. washText
+    end
+
+    -- =========================================================
+    -- 3. TOMBOL KIRI (DIG LOCATION)
+    -- =========================================================
+    SimpleUI:CreateButton(DualBtnFrame, "Save Dig", function()
         if PanModule.getRegion(HumanoidRootPart) == "Deposit" then
             State.AutoFarm.sandCFrame = HumanoidRootPart.CFrame
+            UpdateCoordLabel() -- Update teks!
+
             SimpleUI:CreateNotification({
-                Type = "Success",
-                Title = "Location Saved",
-                Description = "Dig location has been saved successfully.",
-                Duration = 5
+                Type = "Success", Title = "Dig Saved",
+                Description = "Koordinat: " .. string.format("%.1f, %.1f", HumanoidRootPart.Position.X, HumanoidRootPart.Position.Z),
+                Duration = 3
             })
         else
             SimpleUI:CreateNotification({
-                Type = "Error",
-                Title = "Invalid Location",
-                Description = "You must stand within a deposit area to save this location.",
-                Duration = 5
+                Type = "Error", Title = "Invalid Location",
+                Description = "Berdiri di area deposit (pasir) dulu ngab!", Duration = 3
             })
         end
     end)
 
-    SimpleUI:CreateButton(AutoFarmSection.Container, "Save Washing Location", function()
+    -- =========================================================
+    -- 4. TOMBOL KANAN (WASH LOCATION)
+    -- =========================================================
+    SimpleUI:CreateButton(DualBtnFrame, "Save Wash", function()
         if PanModule.getRegion(HumanoidRootPart) == "Water" then
             State.AutoFarm.waterCFrame = HumanoidRootPart.CFrame
+            UpdateCoordLabel() -- Update teks!
+
             SimpleUI:CreateNotification({
-                Type = "Success",
-                Title = "Location Saved",
-                Description = "Washing location has been saved successfully.",
-                Duration = 5
+                Type = "Success", Title = "Wash Saved",
+                Description = "Koordinat: " .. string.format("%.1f, %.1f", HumanoidRootPart.Position.X, HumanoidRootPart.Position.Z),
+                Duration = 3
             })
         else
             SimpleUI:CreateNotification({
-                Type = "Error",
-                Title = "Invalid Location",
-                Description = "You must stand within a water region to save this location.",
-                Duration = 5
+                Type = "Error", Title = "Invalid Location",
+                Description = "Berdiri di area air dulu ngab!", Duration = 3
             })
+        end
+    end)
+
+    -- =========================================================
+    -- 5. HACK RESIZE BIAR TOMBOL JADI SETENGAH (50%)
+    -- =========================================================
+    task.spawn(function()
+        task.wait(0.1) -- Tunggu UI kelar dirender
+        for _, child in ipairs(DualBtnFrame:GetChildren()) do
+            if child:IsA("Frame") or child:IsA("TextButton") then
+                -- Ubah ukuran tiap tombol jadi 50% minus 5 pixel (buat ruang tengah)
+                child.Size = UDim2.new(0.5, -5, 1, 0)
+            end
         end
     end)
 
