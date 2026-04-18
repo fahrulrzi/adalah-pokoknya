@@ -2731,7 +2731,7 @@ do
         end
 
         function SimpleUI.NotificationManager:CreateNotificationUI(Config)
-            local Theme = SimpleUI.Themes.Obsidian
+            local Theme = SimpleUI.Themes.DefaultTheme
             local Holder = self:GetHolder()
             local IsMobile = SimpleUI.Utility:IsMobile()
             local HasDuration = Config.Duration and Config.Duration > 0
