@@ -11658,10 +11658,6 @@ local function initializeMainTab()
         end
     end)
 
-    SimpleUI:CreateButton(AutoFarmSection.Container, "Unstuck Character", function()
-        CharacterLock.unlock()
-    end)
-
     SimpleUI:CreateButton(AutoFarmSection.Container, "Remove Crocodiles", function()
         BarrierRemovalModule.removeCrocodiles()
     end)
