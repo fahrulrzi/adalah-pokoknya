@@ -202,7 +202,7 @@ SimpleUI.Themes = {
     }
 }
 
-SimpleUI.Themes.DefaultTheme = SimpleUI.Themes.Parchment
+SimpleUI.Themes.DefaultTheme = SimpleUI.Themes.KuliJawa
 
 -- Helper frameworks
 do
