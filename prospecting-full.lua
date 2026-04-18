@@ -11435,7 +11435,7 @@ local window = SimpleUI:CreateWindow({
     },
     Theme = "KuliJawa",
     DefaultScale = SimpleUI.Utility:IsMobile() and 0.50 or 0.75,
-    TabMode = "Dynamic",
+    TabMode = "Fixed",
     CanResize = true,
     Footer = true,
     FooterItems = {{
@@ -11542,25 +11542,24 @@ local function initializeMainTab()
         Style = "box",
         -- Icon = "rbxassetid://10789587520",
         DefaultExpanded = true,
-        TextSize = 15
+        TextSize = 18
     })
 
-        -- =========================================================
+    -- =========================================================
     -- 2. BIKIN TEKS BUAT NAMPILIN KOORDINAT
     -- =========================================================
     local CoordLabel = Instance.new("TextLabel")
     CoordLabel.Size = UDim2.new(1, 0, 0, 25)
     CoordLabel.BackgroundTransparency = 1
     CoordLabel.TextColor3 = Color3.fromRGB(0, 255, 255) -- Warna Neon Cyan lu
-    CoordLabel.TextSize = 12
+    CoordLabel.TextSize = 14
     CoordLabel.Font = Enum.Font.GothamMedium
     CoordLabel.Text = "📍 Dig: Belum disave   |   💧 Wash: Belum disave"
     CoordLabel.Parent = AutoFarmSection.Container
 
-    -- Fungsi buat update teks koordinat
     local function UpdateCoordLabel()
-        local digText = "Belum disave"
-        local washText = "Belum disave"
+        local digText = "Unknown"
+        local washText = "Unknown"
 
         if State.AutoFarm.sandCFrame then
             local p = State.AutoFarm.sandCFrame.Position
@@ -11591,7 +11590,7 @@ local function initializeMainTab()
     local RowLayout = Instance.new("UIListLayout")
     RowLayout.FillDirection = Enum.FillDirection.Horizontal
     RowLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    RowLayout.Padding = UDim.new(0, 10)
+    RowLayout.Padding = UDim.new(0, 10, 10, 10)
     RowLayout.Parent = DualBtnFrame
 
     -- =========================================================
@@ -11600,7 +11599,7 @@ local function initializeMainTab()
     SimpleUI:CreateButton(DualBtnFrame, "Save Dig", function()
         if PanModule.getRegion(HumanoidRootPart) == "Deposit" then
             State.AutoFarm.sandCFrame = HumanoidRootPart.CFrame
-            UpdateCoordLabel() -- Update teks!
+            UpdateCoordLabel()
 
             SimpleUI:CreateNotification({
                 Type = "Success", Title = "Dig Saved",
@@ -11621,7 +11620,7 @@ local function initializeMainTab()
     SimpleUI:CreateButton(DualBtnFrame, "Save Wash", function()
         if PanModule.getRegion(HumanoidRootPart) == "Water" then
             State.AutoFarm.waterCFrame = HumanoidRootPart.CFrame
-            UpdateCoordLabel() -- Update teks!
+            UpdateCoordLabel()
 
             SimpleUI:CreateNotification({
                 Type = "Success", Title = "Wash Saved",
@@ -11640,10 +11639,9 @@ local function initializeMainTab()
     -- 5. HACK RESIZE BIAR TOMBOL JADI SETENGAH (50%)
     -- =========================================================
     task.spawn(function()
-        task.wait(0.1) -- Tunggu UI kelar dirender
+        task.wait(0.1)
         for _, child in ipairs(DualBtnFrame:GetChildren()) do
             if child:IsA("Frame") or child:IsA("TextButton") then
-                -- Ubah ukuran tiap tombol jadi 50% minus 5 pixel (buat ruang tengah)
                 child.Size = UDim2.new(0.5, -5, 1, 0)
             end
         end
