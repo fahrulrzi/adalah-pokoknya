@@ -135,39 +135,6 @@ SimpleUI.WindowControls = {
 }
 
 SimpleUI.Themes = {
-    Matcha = {
-        Primary = Color3.fromRGB(236, 248, 238),
-        Secondary = Color3.fromRGB(214, 238, 218),
-        SecondaryHover = Color3.fromRGB(190, 226, 196),
-        SecondaryActive = Color3.fromRGB(164, 212, 172),
-        SecondaryPressed = Color3.fromRGB(204, 233, 209),
-        Tertiary = Color3.fromRGB(180, 220, 188),
-        TertiaryHover = Color3.fromRGB(156, 206, 166),
-        TertiaryActive = Color3.fromRGB(130, 190, 142),
-        TertiaryPressed = Color3.fromRGB(170, 214, 178),
-        Quaternary = Color3.fromRGB(226, 244, 228),
-        QuaternaryHover = Color3.fromRGB(206, 234, 210),
-        Separator = Color3.fromRGB(130, 196, 142),
-        SeparatorTransparency = 0.28,
-        BoxBackground = Color3.fromRGB(246, 254, 248),
-        TextPrimary = Color3.fromRGB(10, 44, 18),
-        TextSecondary = Color3.fromRGB(34, 110, 52),
-        TextInactive = Color3.fromRGB(96, 164, 110),
-        TextActive = Color3.fromRGB(4, 26, 10),
-        Accent = Color3.fromRGB(60, 168, 84),
-        TabAccent = Color3.fromRGB(88, 196, 112),
-        TabIconActive = Color3.fromRGB(60, 168, 84),
-        TabIconHover = Color3.fromRGB(10, 50, 20),
-        TabIconInactive = Color3.fromRGB(96, 164, 110),
-        FontPrimary = Enum.Font.GothamBold,
-        FontSecondary = Enum.Font.GothamMedium,
-        FontSizePrimary = 18,
-        FontSizeSecondary = 16,
-        TransparencyPrimary = 0.0,
-        TransparencySecondary = 0.34,
-        TransparencyTertiary = 0.16
-    },
-
     KuliJawa = { 
         Primary = Color3.fromRGB(15, 15, 20),
         Secondary = Color3.fromRGB(25, 25, 30),
