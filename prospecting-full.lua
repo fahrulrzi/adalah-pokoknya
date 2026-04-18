@@ -11583,14 +11583,19 @@ local function initializeMainTab()
     -- =========================================================
     local DualBtnFrame = Instance.new("Frame")
     DualBtnFrame.Name = "DualButtonRow"
-    DualBtnFrame.Size = UDim2.new(1, 0, 0, 36)
+    
+    -- TADI: 36. SEKARANG: 46 (Ada lebihan 10 pixel buat Margin Bawah)
+    DualBtnFrame.Size = UDim2.new(1, 0, 0, 46) 
     DualBtnFrame.BackgroundTransparency = 1
     DualBtnFrame.Parent = AutoFarmSection.Container
 
     local RowLayout = Instance.new("UIListLayout")
     RowLayout.FillDirection = Enum.FillDirection.Horizontal
     RowLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    RowLayout.Padding = UDim.new(10, 10)
+    RowLayout.Padding = UDim.new(0, 10) -- Jarak horizontal antar 2 tombol
+    
+    -- 🔥 BARIS SAKTI: Biar tombol nempel di atas dan nyisain ruang kosong di bawah
+    RowLayout.VerticalAlignment = Enum.VerticalAlignment.Top 
     RowLayout.Parent = DualBtnFrame
 
     -- =========================================================
@@ -11642,7 +11647,7 @@ local function initializeMainTab()
         task.wait(0.1)
         for _, child in ipairs(DualBtnFrame:GetChildren()) do
             if child:IsA("Frame") or child:IsA("TextButton") then
-                child.Size = UDim2.new(0.5, -5, 1, 0)
+                child.Size = UDim2.new(0.5, -5, 0, 36)
             end
         end
     end)
