@@ -15,7 +15,7 @@ end
 
 local SimpleUI = {}
 
-SimpleUI.Version = "2.2.7"
+SimpleUI.Version = "1.6.2"
 SimpleUI.Loaded = SimpleUI.Loaded or {}
 SimpleUI.Windows = SimpleUI.Windows or {}
 
@@ -11435,7 +11435,7 @@ local window = SimpleUI:CreateWindow({
     },
     Theme = "KuliJawa",
     DefaultScale = SimpleUI.Utility:IsMobile() and 0.50 or 0.75,
-    TabMode = "Dynamic",
+    TabMode = "Fixed",
     CanResize = true,
     Footer = true,
     FooterItems = {{
