@@ -11435,7 +11435,7 @@ local window = SimpleUI:CreateWindow({
     },
     Theme = "KuliJawa",
     DefaultScale = SimpleUI.Utility:IsMobile() and 0.50 or 0.75,
-    TabMode = "Fixed",
+    TabMode = "Dynamic",
     CanResize = true,
     Footer = true,
     FooterItems = {{
