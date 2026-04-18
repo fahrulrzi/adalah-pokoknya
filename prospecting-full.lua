@@ -11545,27 +11545,7 @@ local function initializeMainTab()
         TextSize = 15
     })
 
-    SimpleUI:CreateDropdown(AutoFarmSection.Container, "Movement Method", {"Tween", "Teleport"}, "Teleport",
-        function(selection)
-            State.AutoFarm.travelMode = selection
-        end)
-
-    -- =========================================================
-    -- 1. BIKIN KOTAK HORIZONTAL (2 KOLOM)
-    -- =========================================================
-    local DualBtnFrame = Instance.new("Frame")
-    DualBtnFrame.Name = "DualButtonRow"
-    DualBtnFrame.Size = UDim2.new(1, 0, 0, 36) -- Tinggi tombol
-    DualBtnFrame.BackgroundTransparency = 1
-    DualBtnFrame.Parent = AutoFarmSection.Container
-
-    local RowLayout = Instance.new("UIListLayout")
-    RowLayout.FillDirection = Enum.FillDirection.Horizontal
-    RowLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    RowLayout.Padding = UDim.new(0, 10) -- Jarak antar 2 tombol
-    RowLayout.Parent = DualBtnFrame
-
-    -- =========================================================
+        -- =========================================================
     -- 2. BIKIN TEKS BUAT NAMPILIN KOORDINAT
     -- =========================================================
     local CoordLabel = Instance.new("TextLabel")
@@ -11593,6 +11573,26 @@ local function initializeMainTab()
 
         CoordLabel.Text = "📍 Dig: " .. digText .. "   |   💧 Wash: " .. washText
     end
+
+    SimpleUI:CreateDropdown(AutoFarmSection.Container, "Movement Method", {"Tween", "Teleport"}, "Teleport",
+        function(selection)
+            State.AutoFarm.travelMode = selection
+        end)
+
+    -- =========================================================
+    -- 1. BIKIN KOTAK HORIZONTAL (2 KOLOM)
+    -- =========================================================
+    local DualBtnFrame = Instance.new("Frame")
+    DualBtnFrame.Name = "DualButtonRow"
+    DualBtnFrame.Size = UDim2.new(1, 0, 0, 36)
+    DualBtnFrame.BackgroundTransparency = 1
+    DualBtnFrame.Parent = AutoFarmSection.Container
+
+    local RowLayout = Instance.new("UIListLayout")
+    RowLayout.FillDirection = Enum.FillDirection.Horizontal
+    RowLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    RowLayout.Padding = UDim.new(0, 10)
+    RowLayout.Parent = DualBtnFrame
 
     -- =========================================================
     -- 3. TOMBOL KIRI (DIG LOCATION)
