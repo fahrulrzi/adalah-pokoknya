@@ -4290,9 +4290,9 @@ function SimpleUI:CreateButton(Page, Text, Callback, Options)
             TextColor3 = "TextPrimary",
             Font = "FontSecondary"
         },
-        [Arrow] = {
-            ImageColor3 = "TextPrimary"
-        }
+        -- [Arrow] = {
+        --     ImageColor3 = "TextPrimary"
+        -- }
     }
     if Description then
         ThemeBindings[Description] = {
