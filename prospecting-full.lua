@@ -12747,13 +12747,6 @@ local function initializeOthersTab()
     end, {
         Description = "Removes the final rock barrier to reach the summit peak."
     })
-
-    local ServerSection = SimpleUI:CreateSection(RightPage, "Server Management", {
-        Style = "box",
-        Icon = "rbxassetid://10723405749",
-        DefaultExpanded = true,
-        TextSize = 15
-    })
 end
 
 local function initializeServersTab()
