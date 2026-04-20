@@ -12572,6 +12572,68 @@ local function initializeCharacterTab()
 
     SimpleUI:CreateSection(page, "Character Utilities")
     SimpleUI:CreateParagraph(page, "Character Management", {"Utilities for managing your character's state and appearance."})
+
+    local jumpPower = Humanoid.JumpPower or 50
+    local walkSpeedValue = Humanoid and Humanoid.WalkSpeed or 16
+
+    SimpleUI:CreateSlider(page, "Movement Speed", 0, 100, walkSpeedValue, function(val)
+        pcall(function()
+            walkSpeedValue = val
+            if Humanoid then
+                Humanoid.WalkSpeed = val
+            end
+        end)
+    end)
+
+    if Humanoid then
+        Humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
+            if Humanoid.WalkSpeed ~= walkSpeedValue then
+                Humanoid.WalkSpeed = walkSpeedValue
+            end
+        end)
+    end
+
+    SimpleUI:CreateSlider(page, "Jump Height", 1, 100, jumpPower, function(val)
+        pcall(function()
+            jumpPower = val
+            if Humanoid then
+                Humanoid.UseJumpPower = true
+                Humanoid.JumpPower = val
+            end
+        end)
+    end)
+
+    if Humanoid then
+        Humanoid:GetPropertyChangedSignal("JumpPower"):Connect(function()
+            if Humanoid.JumpPower ~= jumpPower then
+                Humanoid.UseJumpPower = true
+                Humanoid.JumpPower = jumpPower
+            end
+        end)
+    end
+
+    SimpleUI:CreateSlider(page, "Camera Field of View", 30, 120, Camera.FieldOfView,
+        function(value)
+            Camera.FieldOfView = value
+        end, {
+            Increment = 1
+        })
+
+    local fogDensity = 0.1
+    local atmosphere = Services.Lighting:FindFirstChildWhichIsA("Atmosphere") or
+                           Instance.new("Atmosphere", Services.Lighting)
+
+    Services.RunService.RenderStepped:Connect(function()
+        if atmosphere then
+            atmosphere.Density = math.clamp(fogDensity, 0, 1)
+        end
+    end)
+
+    SimpleUI:CreateSlider(page, "Environmental Fog Density", 0.30, 1, 0.40, function(value)
+        fogDensity = value
+    end, {
+        Increment = 0.01
+    })
 end
 
 local function initializeMiscellaneousTab()
@@ -12627,82 +12689,6 @@ local function initializeMiscellaneousTab()
             end
         end)
     end)
-
-    local PlayerSettingsSection = SimpleUI:CreateSection(LeftPage, "Character Settings", {
-        Style = "box",
-        Icon = {
-            Image = "rbxassetid://16898613869",
-            Size = UDim2.new(0, 16, 0, 16),
-            ImageRectSize = Vector2.new(48, 48),
-            ImageRectOffset = Vector2.new(404, 869)
-        },
-        DefaultExpanded = false,
-        TextSize = 15
-    })
-
-    SimpleUI:CreateSection(PlayerSettingsSection.Container, "Humanoid Properties")
-
-    local jumpPower = Humanoid.JumpPower or 50
-    local walkSpeedValue = Humanoid and Humanoid.WalkSpeed or 16
-
-    SimpleUI:CreateSlider(PlayerSettingsSection.Container, "Movement Speed", 0, 100, walkSpeedValue, function(val)
-        pcall(function()
-            walkSpeedValue = val
-            if Humanoid then
-                Humanoid.WalkSpeed = val
-            end
-        end)
-    end)
-
-    if Humanoid then
-        Humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
-            if Humanoid.WalkSpeed ~= walkSpeedValue then
-                Humanoid.WalkSpeed = walkSpeedValue
-            end
-        end)
-    end
-
-    SimpleUI:CreateSlider(PlayerSettingsSection.Container, "Jump Height", 1, 100, jumpPower, function(val)
-        pcall(function()
-            jumpPower = val
-            if Humanoid then
-                Humanoid.UseJumpPower = true
-                Humanoid.JumpPower = val
-            end
-        end)
-    end)
-
-    if Humanoid then
-        Humanoid:GetPropertyChangedSignal("JumpPower"):Connect(function()
-            if Humanoid.JumpPower ~= jumpPower then
-                Humanoid.UseJumpPower = true
-                Humanoid.JumpPower = jumpPower
-            end
-        end)
-    end
-
-    SimpleUI:CreateSlider(PlayerSettingsSection.Container, "Camera Field of View", 30, 120, Camera.FieldOfView,
-        function(value)
-            Camera.FieldOfView = value
-        end, {
-            Increment = 1
-        })
-
-    local fogDensity = 0.1
-    local atmosphere = Services.Lighting:FindFirstChildWhichIsA("Atmosphere") or
-                           Instance.new("Atmosphere", Services.Lighting)
-
-    Services.RunService.RenderStepped:Connect(function()
-        if atmosphere then
-            atmosphere.Density = math.clamp(fogDensity, 0, 1)
-        end
-    end)
-
-    SimpleUI:CreateSlider(PlayerSettingsSection.Container, "Environmental Fog Density", 0.30, 1, 0.40, function(value)
-        fogDensity = value
-    end, {
-        Increment = 0.01
-    })
 
     local RemoveBarriersSection = SimpleUI:CreateSection(RightPage, "Environmental Barriers", {
         Style = "box",
