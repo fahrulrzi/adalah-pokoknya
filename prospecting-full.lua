@@ -11690,7 +11690,7 @@ local function initializeMainTab()
     local isiAwal = BagModule.getCurrentItem()
     if isiAwal == 0 then isiAwal = 100 end 
 
-    SimpleUI:CreateSlider(SellSection.Container, "Sell Trigger", 1, maxKapasitas, isiAwal, function(value)
+    SimpleUI:CreateSlider(SellSection.Container, "Sell Trigger", 1, maxKapasitas, maxKapasitas, function(value)
         State.Sell.threshold = value
     end)
 
@@ -12853,6 +12853,7 @@ initializeFavouriteTab()
 initializeShopTab()
 initializeCharacterTab()
 initializeOthersTab()
+initializeServersTab()
 initializeSettingsTab()
 
 if SimpleUI.Utility:IsMobile() then
