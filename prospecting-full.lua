@@ -10605,33 +10605,47 @@ end
 
 local AutoFarmModule = {}
 do
+    -- =======================================================
+    -- 1. SISTEM JALAN KAKI (WALK) & TELEPORT
+    -- =======================================================
     function AutoFarmModule.moveToLocation(targetCFrame)
         local completed = false
         local success = false
+        local Player = game.Players.LocalPlayer
+        local Character = Player.Character or Player.CharacterAdded:Wait()
+        local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+        local HRP = Character:FindFirstChild("HumanoidRootPart")
 
         local targetObj = {
             Position = targetCFrame.Position,
             CFrame = targetCFrame
         }
 
-        if State.AutoFarm.travelMode == "Tween" then
-            Movement.tweenToTarget(targetObj, {
-                CruiseHeight = 4,
-                MinHeight = 1,
-                MaxHeight = 6,
-                LongDistanceThreshold = 100,
-                DirectFlightThreshold = 30,
-                AdaptiveHeight = false,
-                UseDirectFlight = true,
-                HoverDuration = 0,
-                LandingDuration = 0.3,
-                StopDistance = 5,
-                OnComplete = function(ok)
-                    success = ok or false
-                    completed = true
+        if State.AutoFarm.travelMode == "Walk" then
+            -- [ FITUR BARU: JALAN KAKI BIASA ]
+            if Humanoid and HRP then
+                Humanoid:MoveTo(targetObj.Position)
+                
+                local elapsed = 0
+                -- Looping buat ngecek apakah udah nyampe target (Jarak < 5 stud)
+                while elapsed < 20 and (State.AutoFarm.doDig or State.AutoFarm.doWash) do
+                    local dist = (HRP.Position - targetObj.Position).Magnitude
+                    if dist <= 5 then
+                        success = true
+                        completed = true
+                        break
+                    end
+                    task.wait(0.1)
+                    elapsed = elapsed + 0.1
                 end
-            })
+                
+                -- Kalo gagal/nyangkut
+                if not success then
+                    Humanoid.MoveDirection = Vector3.new(0,0,0) -- Stop jalan
+                end
+            end
         else
+            -- [ TELEPORT NORMAL ]
             Movement.teleportToTarget(targetObj.Position, {
                 Mode = "Standard",
                 OnComplete = function(ok)
@@ -10639,12 +10653,12 @@ do
                     completed = true
                 end
             })
-        end
-
-        local elapsed = 0
-        while not completed and elapsed < 45 and State.AutoFarm.active do
-            task.wait(0.05)
-            elapsed = elapsed + 0.05
+            
+            local elapsed = 0
+            while not completed and elapsed < 45 and (State.AutoFarm.doDig or State.AutoFarm.doWash) do
+                task.wait(0.05)
+                elapsed = elapsed + 0.05
+            end
         end
 
         if success then
@@ -10655,25 +10669,24 @@ do
         return success
     end
 
+    -- =======================================================
+    -- 2. EKSEKUSI ANIMASI (TETAP SAMA)
+    -- =======================================================
     function AutoFarmModule.doAction(actionType, expectedRegion)
         local ok, result = pcall(function()
             local pan = PanModule.equipPan()
-            if not pan then
-                return false
-            end
+            if not pan then return false end
 
-            if PanModule.getRegion(HumanoidRootPart) ~= expectedRegion then
-                return false
-            end
+            local HRP = game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if PanModule.getRegion(HRP) ~= expectedRegion then return false end
 
             local killSwitch = function()
-                return State.AutoFarm.active
+                return (State.AutoFarm.doDig or State.AutoFarm.doWash)
             end
 
             local r = PanModule.handleAction(State.AutoFarm.actionMode, actionType, true, killSwitch)
             return r ~= "MAX_RETRY_FAIL" and r ~= "KILLED"
         end)
-
         return ok and result
     end
 
@@ -10695,26 +10708,25 @@ do
         return true
     end
 
+    -- =======================================================
+    -- 3. AUTO SELL (TETAP SAMA)
+    -- =======================================================
     function AutoFarmModule.checkAndDoSell()
-        if not State.Sell.autoSell then
-            return
-        end
-
+        if not State.Sell.autoSell then return end
         local shouldSell = false
         local mode = State.Sell.type or "Threshold"
 
         if mode == "Threshold" then
             shouldSell = SellModule.getInventoryCount() >= (tonumber(State.Sell.threshold) or 50)
         elseif mode == "Time" then
-            shouldSell = State.Sell._scheduledSell or
-                             (os.clock() - (State.Sell._lastSell or 0) >= (tonumber(State.Sell.delay) or 300))
+            shouldSell = State.Sell._scheduledSell or (os.clock() - (State.Sell._lastSell or 0) >= (tonumber(State.Sell.delay) or 300))
         end
 
         if shouldSell then
             if SellModule.sell({}, State.Sell.mode or "Teleport") then
                 State.Sell._lastSell = os.clock()
                 State.Sell._scheduledSell = false
-
+                local Player = game.Players.LocalPlayer
                 if Player and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
                     CharacterLock.lock(Player.Character.HumanoidRootPart.CFrame)
                     State.AutoFarm.locked = true
@@ -10723,125 +10735,106 @@ do
         end
     end
 
+    -- =======================================================
+    -- 4. MASTER LOOP (MANDOR UTAMA)
+    -- =======================================================
     function AutoFarmModule.teardown()
         if State.AutoFarm.locked then
             CharacterLock.unlock()
             State.AutoFarm.locked = false
         end
-
         if TaskManager:getMainTask() == "AutoFarm" then
             TaskManager:finishTask("AutoFarm")
         end
-
         TaskManager:clearSubTasks()
         State.AutoFarm.running = false
     end
 
-    function AutoFarmModule.start()
-        if State.AutoFarm.running then
-            return
-        end
-
-        State.AutoFarm.active = true
+    function AutoFarmModule.masterLoop()
+        if State.AutoFarm.running then return end
         State.AutoFarm.running = true
         State.AutoFarm.interrupted = false
 
-        if not State.AutoFarm.travelMode or State.AutoFarm.travelMode == "" then
-            Utility.createNotification("❌ Select travel mode!")
-            State.AutoFarm.active = false
-            State.AutoFarm.running = false
-            return
-        end
-
-        if not State.AutoFarm.actionMode or State.AutoFarm.actionMode == "" then
-            Utility.createNotification("❌ Select farming mode!")
-            State.AutoFarm.active = false
-            State.AutoFarm.running = false
-            return
-        end
-
-        if not (State.AutoFarm.sandCFrame and State.AutoFarm.waterCFrame) then
-            Utility.createNotification("❌ Set locations!")
-            State.AutoFarm.active = false
-            State.AutoFarm.running = false
-            return
-        end
-
-        Utility.createNotification("🚀 Starting!")
-
         task.spawn(function()
-            while State.AutoFarm.active do
+            -- Loop akan jalan selama doDig ATAU doWash aktif
+            while State.AutoFarm.doDig or State.AutoFarm.doWash do
                 local acquired = TaskManager:requestTask("AutoFarm", 1)
-
+                
                 if acquired then
-                    local hasTurn = TaskManager:waitForTurn("AutoFarm", 5)
+                    if TaskManager:waitForTurn("AutoFarm", 5) and TaskManager:startTask("AutoFarm") then
+                        while (State.AutoFarm.doDig or State.AutoFarm.doWash) and TaskManager:canRun("AutoFarm") do
+                            
+                            local ok = pcall(function()
+                                local panStatus = PanModule.getStatus()
+                                if not panStatus then task.wait(0.05) return end
 
-                    if hasTurn then
-                        local started = TaskManager:startTask("AutoFarm")
+                                AutoFarmModule.checkAndDoSell()
 
-                        if started then
-                            while State.AutoFarm.active and TaskManager:canRun("AutoFarm") do
-                                if State.AutoFarm.interrupted then
-                                    if State.AutoFarm.locked then
-                                        CharacterLock.unlock()
-                                        State.AutoFarm.locked = false
-                                    end
-
-                                    while State.AutoFarm.interrupted and State.AutoFarm.active do
-                                        task.wait(0.1)
-                                    end
-                                end
-
-                                local ok = pcall(function()
-                                    local panStatus = PanModule.getStatus()
-                                    if not panStatus then
-                                        task.wait(0.05)
-                                        return
-                                    end
-
-                                    AutoFarmModule.checkAndDoSell()
-
-                                    if panStatus.isFull then
-                                        if not AutoFarmModule.performTask("MovingToWater", "WashPan",
-                                            State.AutoFarm.waterCFrame, "Wash", "Water") then
-                                            State.AutoFarm.active = false
-                                        end
+                                -- LOGIKA BARU: Cek Ketersediaan Izin
+                                if panStatus.isFull then
+                                    if State.AutoFarm.doWash then
+                                        AutoFarmModule.performTask("MovingToWater", "WashPan", State.AutoFarm.waterCFrame, "Wash", "Water")
                                     else
-                                        if not AutoFarmModule.performTask("MovingToSand", "DigSand",
-                                            State.AutoFarm.sandCFrame, "Dig", "Deposit") then
-                                            State.AutoFarm.active = false
-                                        end
+                                        -- Kalo pan penuh tapi fitur wash dimatiin, dia diem nunggu
+                                        task.wait(1) 
                                     end
-                                end)
-
-                                if not ok then
-                                    if State.AutoFarm.locked then
-                                        CharacterLock.unlock()
-                                        State.AutoFarm.locked = false
+                                else
+                                    if State.AutoFarm.doDig then
+                                        AutoFarmModule.performTask("MovingToSand", "DigSand", State.AutoFarm.sandCFrame, "Dig", "Deposit")
+                                    else
+                                        -- Kalo pan kosong tapi fitur dig dimatiin, dia diem nunggu
+                                        task.wait(1)
                                     end
-                                    task.wait(0.05)
                                 end
+                            end)
 
-                                task.wait(0.01)
+                            if not ok and State.AutoFarm.locked then
+                                CharacterLock.unlock()
+                                State.AutoFarm.locked = false
                             end
-
-                            TaskManager:finishTask("AutoFarm")
-                        else
-                            task.wait(0.1)
+                            task.wait(0.01)
                         end
+                        TaskManager:finishTask("AutoFarm")
                     end
-                else
-                    task.wait(0.1)
                 end
+                task.wait(0.1)
             end
-
+            
+            -- Kalo dua-duanya dimatiin, bersihin semua
             AutoFarmModule.teardown()
-            Utility.createNotification("🛑 Stopped")
+            Utility.createNotification("🛑 Auto Farm Completely Stopped")
         end)
     end
 
-    function AutoFarmModule.stop()
-        State.AutoFarm.active = false
+    -- =======================================================
+    -- 5. KONTROL INDIVIDU (BUAT UI LU NANTI)
+    -- =======================================================
+    function AutoFarmModule.startDig()
+        if not State.AutoFarm.sandCFrame then
+            Utility.createNotification("❌ Save Dig Location dulu ngab!")
+            return false
+        end
+        State.AutoFarm.doDig = true
+        AutoFarmModule.masterLoop()
+        return true
+    end
+
+    function AutoFarmModule.stopDig()
+        State.AutoFarm.doDig = false
+    end
+
+    function AutoFarmModule.startWash()
+        if not State.AutoFarm.waterCFrame then
+            Utility.createNotification("❌ Save Wash Location dulu ngab!")
+            return false
+        end
+        State.AutoFarm.doWash = true
+        AutoFarmModule.masterLoop()
+        return true
+    end
+
+    function AutoFarmModule.stopWash()
+        State.AutoFarm.doWash = false
     end
 end
 
@@ -11484,7 +11477,7 @@ local Tabs = {
     Character = SimpleUI:CreateTab(window, "Character", {
         Description = "Character utilities"
     }),
-    Miscellaneous = SimpleUI:CreateTab(window, "Miscellaneous", {
+    Others = SimpleUI:CreateTab(window, "Others", {
         Description = "Excavation sites, environmental barriers, and utilities",
         -- Icon = {
         --     Image = "rbxassetid://10734963191",
@@ -11544,7 +11537,7 @@ local function initializeMainTab()
         CoordLabel.Text = "📍 Dig: " .. digText .. "   |   💧 Wash: " .. washText
     end
 
-    SimpleUI:CreateDropdown(AutoFarmSection.Container, "Movement Method", {"Tween", "Teleport"}, "Teleport",
+    SimpleUI:CreateDropdown(AutoFarmSection.Container, "Movement Method", {"Walk", "Teleport"}, "Walk",
         function(selection)
             State.AutoFarm.travelMode = selection
         end)
@@ -11621,11 +11614,19 @@ local function initializeMainTab()
         end
     end)
 
-    SimpleUI:CreateToggle(AutoFarmSection.Container, "Enable Auto Farm", false, function(state)
+    SimpleUI:CreateToggle(AutoFarmSection.Container, "Enable Auto Dig", false, function(state)
         if state then
-            AutoFarmModule.start()
+            AutoFarmModule.startDig()
         else
-            AutoFarmModule.stop()
+            AutoFarmModule.stopDig()
+        end
+    end)
+
+    SimpleUI:CreateToggle(AutoFarmSection.Container, "Enable Auto Wash", false, function(state)
+        if state then
+            AutoFarmModule.startWash()
+        else
+            AutoFarmModule.stopWash()
         end
     end)
 
@@ -12636,8 +12637,8 @@ local function initializeCharacterTab()
     })
 end
 
-local function initializeMiscellaneousTab()
-    local page = Tabs.Miscellaneous.Page
+local function initializeOthersTab()
+    local page = Tabs.Others.Page
     local LeftPage = page.Left
     local RightPage = page.Right
 
@@ -12811,7 +12812,7 @@ initializeCraftingTab()
 initializeFavouriteTab()
 initializeShopTab()
 initializeCharacterTab()
-initializeMiscellaneousTab()
+initializeOthersTab()
 initializeSettingsTab()
 
 if SimpleUI.Utility:IsMobile() then
