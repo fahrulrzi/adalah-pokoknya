@@ -11385,6 +11385,195 @@ do
     end
 end
 
+local TreasureHunter = {}
+do
+    local Player = game.Players.LocalPlayer
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+    local TreasureHunter = {
+        isHunting = false,
+        mapsCompleted = 0,
+        homeCFrame = nil 
+    }
+
+    function TreasureHunter.UpdateStatus(statusText)
+        treasureStatus:SetFields({
+            statusText, 
+            "Maps Completed: " .. TreasureHunter.mapsCompleted
+        })
+    end
+
+    function TreasureHunter.findNextMap()
+        local character = Player.Character
+        if character then
+            for _, item in ipairs(character:GetChildren()) do
+                if item:IsA("Tool") and item:GetAttribute("ItemType") == "TreasureMap" then
+                    return item
+                end
+            end
+        end
+
+        local backpack = Player:FindFirstChild("BackpackTwo")
+        if backpack then
+            for _, item in ipairs(backpack:GetChildren()) do
+                if item:GetAttribute("ItemType") == "TreasureMap" then
+                    return item
+                end
+            end
+        end
+        return nil
+    end
+
+    function TreasureHunter.getPan()
+        local character = Player.Character
+        if not character then return nil end
+
+        local equipped = character:FindFirstChildOfClass("Tool")
+        if equipped and equipped:GetAttribute("ItemType") == "Pan" then
+            return equipped
+        end
+
+        local backpack = Player:FindFirstChild("BackpackTwo")
+        if backpack then
+            for _, item in ipairs(backpack:GetChildren()) do
+                if item:GetAttribute("ItemType") == "Pan" then
+                    pcall(function()
+                        ReplicatedStorage.Remotes.CustomBackpack.EquipRemote:FireServer(item)
+                    end)
+                    task.wait(1)
+                    return item
+                end
+            end
+        end
+        return nil
+    end
+
+    function TreasureHunter.huntSingleMap(map)
+        local character = Player.Character
+        if not character or not character:FindFirstChild("HumanoidRootPart") or not character:FindFirstChild("Humanoid") then 
+            return false 
+        end
+        
+        local hrp = character.HumanoidRootPart
+        local humanoid = character.Humanoid
+        local location = map:GetAttribute("Location")
+        
+        if not location then return false end
+
+        local targetPosition = typeof(location) == "CFrame" and location.Position or location
+        local targetCFrame = CFrame.new(targetPosition + Vector3.new(0, 2.5, 0))
+
+        local pan = TreasureHunter.getPan()
+        if not pan then 
+            TreasureHunter.UpdateStatus("Status: Error - No Pan")
+            return false 
+        end
+
+        local collectScript = pan:FindFirstChild("Scripts") and pan.Scripts:FindFirstChild("Collect")
+        if not collectScript then return false end
+
+        TreasureHunter.UpdateStatus("Status: Digging...")
+
+        hrp.CFrame = targetCFrame
+        local oldWalkSpeed = humanoid.WalkSpeed
+        local oldJumpPower = humanoid.JumpPower
+        humanoid.WalkSpeed = 0
+        humanoid.JumpPower = 0
+
+        local timeout = 120 
+        local startTime = tick()
+        local lastCollectTime = 0
+        local success = false
+
+        while TreasureHunter.isHunting and (tick() - startTime) < timeout do
+            if not map or map.Parent == nil then
+                success = true
+                break
+            end
+
+            local backpackTwo = Player:FindFirstChild("BackpackTwo")
+            local isStillOwned = (map.Parent == character) or 
+                                 (map.Parent == Player.Backpack) or 
+                                 (backpackTwo and map.Parent == backpackTwo)
+
+            if not isStillOwned then
+                success = true
+                break
+            end
+
+            if (hrp.Position - targetPosition).Magnitude > 3 then
+                hrp.CFrame = targetCFrame
+            end
+
+            hrp.Velocity = Vector3.new(0, hrp.Velocity.Y, 0)
+
+            if tick() - lastCollectTime > 0.2 then
+                pcall(function()
+                    collectScript:InvokeServer(0)
+                end)
+                lastCollectTime = tick()
+            end
+
+            task.wait(0.05)
+        end
+
+        humanoid.WalkSpeed = oldWalkSpeed
+        humanoid.JumpPower = oldJumpPower
+        
+        if TreasureHunter.homeCFrame then
+            for i = 1, 3 do
+                hrp.CFrame = TreasureHunter.homeCFrame
+                task.wait(0.1)
+            end
+        end
+
+        return success
+    end
+
+    function TreasureHunter.Start()
+        if TreasureHunter.isHunting then return end
+        
+        if not TreasureHunter.homeCFrame then
+            Utility.createNotification("❌ Set Home Location dulu ngab!")
+            return
+        end
+
+        TreasureHunter.isHunting = true
+        TreasureHunter.UpdateStatus("Status: Starting...")
+
+        task.spawn(function()
+            while TreasureHunter.isHunting do
+                local map = TreasureHunter.findNextMap()
+
+                if not map then
+                    TreasureHunter.UpdateStatus("Status: Waiting for Maps...")
+                    task.wait(1)
+                    continue
+                end
+
+                TreasureHunter.UpdateStatus("Status: Found Map!")
+                
+                local success = TreasureHunter.huntSingleMap(map)
+
+                if success then
+                    TreasureHunter.mapsCompleted = TreasureHunter.mapsCompleted + 1
+                    TreasureHunter.UpdateStatus("Status: Map Completed!")
+                    task.wait(1.5) 
+                else
+                    TreasureHunter.UpdateStatus("Status: Retrying...")
+                    task.wait(2)
+                end
+            end
+            TreasureHunter.UpdateStatus("Status: Stopped")
+        end)
+    end
+
+    function TreasureHunter.Stop()
+        TreasureHunter.isHunting = false
+        TreasureHunter.UpdateStatus("Status: Stopping...")
+    end
+end
+
 local BarrierRemovalModule = {}
 do
     function BarrierRemovalModule.removeVines()
@@ -11749,53 +11938,31 @@ local function initializeHuntingTab()
     })
 
     local treasureStatus = SimpleUI:CreateParagraph(TreasureSection.Container, "Hunt Status",
-        {"Idle", "No maps detected"})
+        {"Status: Idle", "Maps Completed: 0"})
 
-    SimpleUI:CreateParagraph(TreasureSection.Container, "Treasure Hunt Instructions",
-        {"Ensure you have a treasure map in your inventory before starting.", {
-            Text = "The system will automatically navigate to the map location and collect items.",
-            IsSubField = true
-        }, {
-            Text = "Hunt completes when the map is consumed.",
-            IsSubField = true
-        }})
+    SimpleUI:CreateParagraph(TreasureSection.Container, "Instructions",
+        {
+            "1. Set Home Location dulu sebelum mulai.", 
+            "2. Pastiin ada map di inventory/backpack.",
+            "3. Klik Start buat mulai auto-hunt."
+        }
+    )
 
-    SimpleUI:CreateButton(TreasureSection.Container, "Start Treasure Hunt", function()
-        if HuntingModule.isTreasureHunting() then
-            treasureStatus:SetFields({"Status: Already Running", "Hunt in progress"})
-            return
-        end
-
-        local map = HuntingModule.findNextMap()
-        if not map then
-            treasureStatus:SetFields({"Status: Failed", "No treasure maps found in inventory"})
-            return
-        end
-
-        if HuntingModule.startTreasureHunting() then
-            treasureStatus:SetFields({"Status: Active", "Hunting in progress"})
-            task.spawn(function()
-                while HuntingModule.isTreasureHunting() do
-                    local status = HuntingModule.getTreasureHuntStatus()
-                    treasureStatus:SetFields({"Status: Active", "Maps completed: " .. status.mapsCompleted})
-                    task.wait(1)
-                end
-                treasureStatus:SetFields({"Status: Completed",
-                                          "Hunt finished - " .. HuntingModule.treasureState.mapsCompleted ..
-                    " maps hunted"})
-            end)
-        else
-            treasureStatus:SetFields({"Status: Failed", "Unable to start hunt"})
+    SimpleUI:CreateButton(TreasureSection.Container, "📍 Set Home Location", function()
+        local char = Player.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            TreasureHunter.homeCFrame = char.HumanoidRootPart.CFrame
+            Utility.createNotification("✅ Home Set! Ready to Farm.")
+            TreasureHunter.UpdateStatus("Status: Home Set!")
         end
     end)
 
-    SimpleUI:CreateButton(TreasureSection.Container, "Stop Treasure Hunt", function()
-        if not HuntingModule.isTreasureHunting() then
-            treasureStatus:SetFields({"Status: Idle", "No hunt in progress"})
-            return
-        end
-        HuntingModule.stopTreasureHunting()
-        treasureStatus:SetFields({"Status: Stopped", "Hunt halted"})
+    SimpleUI:CreateButton(TreasureSection.Container, "▶️ Start Treasure Hunt", function()
+        TreasureHunter.Start()
+    end)
+
+    SimpleUI:CreateButton(TreasureSection.Container, "⏹️ Stop Treasure Hunt", function()
+        TreasureHunter.Stop()
     end)
 
     local GeodeSection = SimpleUI:CreateSection(RightPage, "Geode Extraction", {
