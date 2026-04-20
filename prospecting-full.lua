@@ -7585,7 +7585,7 @@ local State = {
     AutoFarm = {
         active = false,
         actionMode = "Instant",
-        travelMode = "Teleport",
+        travelMode = "Walk",
         sandCFrame = nil,
         waterCFrame = nil,
         locked = false,
@@ -8955,16 +8955,13 @@ do
 
     function SellModule.sell(config, mode)
         local closestHrp, dist = MerchantModule.getClosest()
-
         local ServerTime = Services.Workspace:GetServerTimeNow()
         local trialTime = Player:GetAttribute("SellAnywhereTrialTime")
         local requiredDistance = config.RequiredDistance or 45
 
         if Player:GetAttribute("SellAnywhere") == true or (trialTime and trialTime + 600 > ServerTime) then
             local itemsSold, _ = SellModule.execute()
-            if itemsSold and itemsSold > 0 then
-                return true
-            end
+            if itemsSold and itemsSold > 0 then return true end
         end
 
         if not closestHrp and Player:GetAttribute("CurrentArea") == "The Void" then
@@ -8974,6 +8971,18 @@ do
         if closestHrp and dist <= requiredDistance then
             SellModule.execute()
             return true
+        end
+
+        if State.Sell.merchantWaypoint and State.Sell.merchantWaypoint ~= "" then
+            WaypointModule.teleport(State.Sell.merchantWaypoint)
+            task.wait(1.5)
+            
+            closestHrp, dist = MerchantModule.getClosest()
+            
+            if closestHrp and dist <= requiredDistance then
+                SellModule.execute()
+                return true
+            end
         end
 
         if not closestHrp then
@@ -10603,6 +10612,38 @@ do
     end
 end
 
+local BagModule = {}
+do
+    local function getBagData()
+        local toolUI = Player.PlayerGui:FindFirstChild("ToolUI")
+        if not toolUI then return 0, 0 end
+        
+        local fillingPan = toolUI:FindFirstChild("FillingPan")
+        if not fillingPan then return 0, 0 end
+        
+        local inventorySpace = fillingPan:FindFirstChild("InventorySpace")
+        if not (inventorySpace and inventorySpace:IsA("TextLabel")) then return 0, 0 end
+
+        local currentStr, maxStr = string.match(inventorySpace.Text, "(%d+)/(%d+)")
+        
+        if currentStr and maxStr then
+            return tonumber(currentStr), tonumber(maxStr)
+        end
+        
+        return 0, 0
+    end
+
+    function BagModule.getCurrentItem()
+        local currentItem, maxItem = getBagData()
+        return currentItem
+    end
+
+    function BagModule.getMaxBag()
+        local currentItem, maxItem = getBagData()
+        return maxItem
+    end
+end
+
 local AutoFarmModule = {}
 do
     -- =======================================================
@@ -10713,19 +10754,18 @@ do
     -- =======================================================
     function AutoFarmModule.checkAndDoSell()
         if not State.Sell.autoSell then return end
-        local shouldSell = false
-        local mode = State.Sell.type or "Threshold"
 
-        if mode == "Threshold" then
-            shouldSell = SellModule.getInventoryCount() >= (tonumber(State.Sell.threshold) or 50)
-        elseif mode == "Time" then
-            shouldSell = State.Sell._scheduledSell or (os.clock() - (State.Sell._lastSell or 0) >= (tonumber(State.Sell.delay) or 300))
-        end
+        local currentItems = BagModule.getCurrentItem() 
+        local thresholdLimit = tonumber(State.Sell.threshold) or 50
 
-        if shouldSell then
-            if SellModule.sell({}, State.Sell.mode or "Teleport") then
-                State.Sell._lastSell = os.clock()
-                State.Sell._scheduledSell = false
+        if currentItems >= thresholdLimit then
+            
+            if SellModule.sell({}, State.Sell.mode or "Walk") then
+                if State.Sell.farmWaypoint and State.Sell.farmWaypoint ~= "" then
+                    WaypointModule.teleport(State.Sell.farmWaypoint)
+                    task.wait(1.5) -- Jeda napas
+                end
+                
                 local Player = game.Players.LocalPlayer
                 if Player and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
                     CharacterLock.lock(Player.Character.HumanoidRootPart.CFrame)
@@ -10756,7 +10796,6 @@ do
         State.AutoFarm.interrupted = false
 
         task.spawn(function()
-            -- Loop akan jalan selama doDig ATAU doWash aktif
             while State.AutoFarm.doDig or State.AutoFarm.doWash do
                 local acquired = TaskManager:requestTask("AutoFarm", 1)
                 
@@ -10770,19 +10809,16 @@ do
 
                                 AutoFarmModule.checkAndDoSell()
 
-                                -- LOGIKA BARU: Cek Ketersediaan Izin
                                 if panStatus.isFull then
                                     if State.AutoFarm.doWash then
                                         AutoFarmModule.performTask("MovingToWater", "WashPan", State.AutoFarm.waterCFrame, "Wash", "Water")
                                     else
-                                        -- Kalo pan penuh tapi fitur wash dimatiin, dia diem nunggu
                                         task.wait(1) 
                                     end
                                 else
                                     if State.AutoFarm.doDig then
                                         AutoFarmModule.performTask("MovingToSand", "DigSand", State.AutoFarm.sandCFrame, "Dig", "Deposit")
                                     else
-                                        -- Kalo pan kosong tapi fitur dig dimatiin, dia diem nunggu
                                         task.wait(1)
                                     end
                                 end
@@ -10800,7 +10836,6 @@ do
                 task.wait(0.1)
             end
             
-            -- Kalo dua-duanya dimatiin, bersihin semua
             AutoFarmModule.teardown()
             Utility.createNotification("🛑 Auto Farm Completely Stopped")
         end)
@@ -10811,7 +10846,7 @@ do
     -- =======================================================
     function AutoFarmModule.startDig()
         if not State.AutoFarm.sandCFrame then
-            Utility.createNotification("❌ Save Dig Location dulu ngab!")
+            Utility.createNotification("❌ Unknown Sand Location!")
             return false
         end
         State.AutoFarm.doDig = true
@@ -10825,7 +10860,7 @@ do
 
     function AutoFarmModule.startWash()
         if not State.AutoFarm.waterCFrame then
-            Utility.createNotification("❌ Save Wash Location dulu ngab!")
+            Utility.createNotification("❌ Unknown Water Location!")
             return false
         end
         State.AutoFarm.doWash = true
@@ -11485,6 +11520,14 @@ local Tabs = {
         -- },
         DualScroll = true
     }),
+    Servers = SimpleUI:CreateTab(window, "Servers", {
+        Description = "Server utilities like rejoin and server hop",
+        -- Icon = {
+        --     Image = "rbxassetid://10734963628",
+        --     ImageColor3 = Color3.fromRGB(255, 255, 255)
+        -- }
+        DualScroll = true
+    }),
     Settings = SimpleUI:CreateTab(window, "Settings", {
         Description = "Interface customization and control configuration",
         -- Icon = {
@@ -11640,26 +11683,15 @@ local function initializeMainTab()
         DefaultExpanded = true,
         TextSize = 15
     })
+    
+    local maxKapasitas = BagModule.getMaxBag()
+    if maxKapasitas == 0 then maxKapasitas = 5000 end 
+    
+    local isiAwal = BagModule.getCurrentItem()
+    if isiAwal == 0 then isiAwal = 100 end 
 
-    SimpleUI:CreateDropdown(SellSection.Container, "Selling Trigger Mode", {"Threshold", "Duration"}, "Threshold",
-        function(selection)
-            State.Sell.type = selection
-            Utility.createNotification("Selling mode changed to: " .. selection)
-        end)
-
-    SimpleUI:CreateTextInput(SellSection.Container, "Configure Threshold or Duration", nil, function(input)
-        local result, kind = Utility.validateSellValue(input)
-        if result then
-            if kind == "time" then
-                State.Sell.delay = result
-                Utility.createNotification("Inventory will be sold every " .. result .. " seconds.", 10)
-            else
-                State.Sell.threshold = result
-                Utility.createNotification("Inventory will be sold after collecting " .. result .. " items.", 10)
-            end
-        else
-            Utility.createNotification("Enter a value between 10-2000 items or 30 seconds to 1 day.", 10)
-        end
+    SimpleUI:CreateSlider(SellSection.Container, "Sell Trigger", 1, maxKapasitas, isiAwal, function(value)
+        State.Sell.threshold = value
     end)
 
     SimpleUI:CreateButton(SellSection.Container, "Sell All Items Now", function()
@@ -11680,39 +11712,28 @@ local function initializeMainTab()
         end)
     end)
 
+    SimpleUI:CreateDropdown(SellSection.Container, "📍 Merchant Waypoint", WaypointModule.getList(), nil, function(selection)
+        State.Sell.merchantWaypoint = selection
+    end, {
+        Description = "Select the nearest waypoint to the merchant for auto-selling. The system will automatically fast travel to this waypoint when selling items."
+    })
+
+    SimpleUI:CreateDropdown(SellSection.Container, "📍 Farm Waypoint", WaypointModule.getList(), nil, function(selection)
+        State.Sell.farmWaypoint = selection
+    end, {
+        Description = "Select the nearest waypoint to your farming location. The system will automatically fast travel to this waypoint after selling items to minimize downtime."
+    })
+
     SimpleUI:CreateToggle(SellSection.Container, "Enable Automatic Selling", false, function(state)
         State.Sell.autoSell = state
-        State.Sell._lastSell = State.Sell._lastSell or 0
-        State.Sell._scheduledSell = false
+        State.Sell.type = "Threshold"
 
         if state then
-            task.spawn(function()
-                while State.Sell.autoSell do
-                    if State.Sell.type == "Time" then
-                        local delay = tonumber(State.Sell.delay) or 300
-                        if os.clock() - State.Sell._lastSell >= delay then
-                            State.Sell._scheduledSell = true
-                        end
-                    end
-                    task.wait(5)
-                end
-            end)
+            Utility.createNotification("✅ Auto Sell Enabled (Threshold Mode)")
+        else
+            Utility.createNotification("❌ Auto Sell Disabled")
         end
-
-        Utility.createNotification(state and "Automatic Selling Enabled" or "Automatic Selling Disabled")
     end)
-
-    SimpleUI:CreateParagraph(SellSection.Container, "Selling Configuration",
-        {"Select your selling trigger method and configure the corresponding threshold or duration below.", {
-            Text = "Threshold Mode: Automatically sells when your inventory reaches a specified item count.",
-            IsSubField = true
-        }, {
-            Text = "Duration Mode: Automatically sells at regular intervals you define.",
-            IsSubField = true
-        }, {
-            Text = "Manual Selling: Waits for the current farming task to complete before initiating the sale.",
-            IsSubField = true
-        }})
 end
 
 local function initializeHuntingTab()
@@ -12577,22 +12598,28 @@ local function initializeCharacterTab()
     local jumpPower = Humanoid.JumpPower or 50
     local walkSpeedValue = Humanoid and Humanoid.WalkSpeed or 16
 
-    SimpleUI:CreateSlider(page, "Movement Speed", 0, 100, walkSpeedValue, function(val)
-        pcall(function()
-            walkSpeedValue = val
-            if Humanoid then
-                Humanoid.WalkSpeed = val
-            end
-        end)
+    local walkSpeedValue = 16 
+
+    SimpleUI:CreateSlider(page, "🏃 Movement Speed", 16, 100, walkSpeedValue, function(val)
+        walkSpeedValue = val
+        local player = game.Players.LocalPlayer
+        if player.Character and player.Character:FindFirstChild("Humanoid") then
+            player.Character.Humanoid.WalkSpeed = val
+        end
     end)
 
-    if Humanoid then
-        Humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
-            if Humanoid.WalkSpeed ~= walkSpeedValue then
-                Humanoid.WalkSpeed = walkSpeedValue
+    task.spawn(function()
+        while task.wait(0.1) do
+            local player = game.Players.LocalPlayer
+            if player.Character and player.Character:FindFirstChild("Humanoid") then
+                local hum = player.Character.Humanoid
+                
+                if hum.WalkSpeed ~= walkSpeedValue then
+                    hum.WalkSpeed = walkSpeedValue
+                end
             end
-        end)
-    end
+        end
+    end)
 
     SimpleUI:CreateSlider(page, "Jump Height", 1, 100, jumpPower, function(val)
         pcall(function()
@@ -12726,6 +12753,19 @@ local function initializeOthersTab()
         Icon = "rbxassetid://10723405749",
         DefaultExpanded = true,
         TextSize = 15
+    })
+end
+
+local function initializeServersTab()
+    local page = Tabs.Servers.Page
+    local LeftPage = page.Left
+    local RightPage = page.Right
+
+    local ServerSection = SimpleUI:CreateSection(LeftPage, "Server Management", {
+        Style = "box",
+        Icon = "rbxassetid://10723405749",
+        DefaultExpanded = true,
+        TextSize = 18
     })
 
     SimpleUI:CreateToggle(ServerSection.Container, "Enable Anti-AFK Protection", true, function(state)
