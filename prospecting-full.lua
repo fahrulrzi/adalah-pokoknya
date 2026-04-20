@@ -7638,6 +7638,11 @@ local State = {
         teleportConnection = nil
     },
 
+    GeodeHunt = {
+        esp = false,
+        espTexts = {}
+    },
+
     Rune = {
         currentIndex = 0,
         autoLoopEnabled = false,
@@ -7654,6 +7659,94 @@ local Config = {
     GEODE_AUTO_LOOP_DELAY = 0.01,
     RUNE_AUTO_LOOP_DELAY = 1
 }
+
+local GeodeModule = {}
+do
+    local GEODE_COLOR = Color3.fromRGB(255, 100, 255)
+
+    function GeodeModule.FindAllGeodes()
+        local found = {}
+        for _, obj in ipairs(workspace:GetDescendants()) do 
+            if obj.Name == "Geode" and obj:IsA("Folder") and obj.Parent then 
+                
+                local physicalPart = obj:FindFirstChildWhichIsA("BasePart", true) 
+                                  or obj:FindFirstChildWhichIsA("MeshPart", true)
+                                  
+                if physicalPart then
+                    table.insert(found, physicalPart) 
+                end
+            end 
+        end
+        return found
+    end
+
+    function GeodeModule.CreateESP(obj)
+        if obj:FindFirstChild("GeodeESP_Text") then return end
+        local billboard = Instance.new("BillboardGui")
+        billboard.Name = "GeodeESP_Text"
+        billboard.Size = UDim2.new(0, 80, 0, 40)
+        billboard.StudsOffset = Vector3.new(0, 3, 0)
+        billboard.AlwaysOnTop = true
+        billboard.Parent = obj
+        
+        local textLabel = Instance.new("TextLabel")
+        textLabel.Name = "TextElement"
+        textLabel.Size = UDim2.new(1, 0, 1, 0)
+        textLabel.BackgroundTransparency = 1
+        textLabel.Text = "💎 Geode"
+        textLabel.TextColor3 = GEODE_COLOR
+        textLabel.Font = Enum.Font.GothamBold
+        textLabel.TextSize = 11
+        textLabel.TextStrokeTransparency = 0
+        textLabel.Parent = billboard
+
+        State.GeodeHunt.espTexts[obj] = billboard
+    end
+
+    function GeodeModule.ClearESP()
+        for obj, billboard in pairs(State.GeodeHunt.espTexts) do 
+            if billboard and billboard.Parent then billboard:Destroy() end 
+        end
+        State.GeodeHunt.espTexts = {}
+    end
+
+    task.spawn(function()
+        local RunService = game:GetService("RunService")
+        local Player = game.Players.LocalPlayer
+
+        RunService.RenderStepped:Connect(function()
+            if State.GeodeHunt.esp then
+                local char = Player.Character
+                local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    local hrpPos = hrp.Position
+                    for geode, billboard in pairs(State.GeodeHunt.espTexts) do
+                        if geode.Parent and billboard.Parent and billboard:FindFirstChild("TextElement") then
+                            local geodePos = geode:IsA("Model") and geode:GetPivot().Position or geode.Position
+                            local dist = (hrpPos - geodePos).Magnitude
+                            billboard.TextElement.Text = "💎 Geode\n[" .. tostring(math.floor(dist)) .. "m]"
+                        end
+                    end
+                end
+            end
+        end)
+
+        while task.wait(1) do
+            if State.GeodeHunt.esp then
+                local currentGeodes = GeodeModule.FindAllGeodes()
+                for _, geode in ipairs(currentGeodes) do 
+                    GeodeModule.CreateESP(geode) 
+                end
+                
+                for geode, _ in pairs(State.GeodeHunt.espTexts) do 
+                    if not geode.Parent then 
+                        State.GeodeHunt.espTexts[geode] = nil 
+                    end 
+                end
+            end
+        end
+    end)
+end
 
 local Utility = {}
 do
@@ -11612,6 +11705,120 @@ do
     end
 end
 
+local EggHuntModule = {}
+do
+    local PathfindingService = game:GetService("PathfindingService")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local RunService = game:GetService("RunService")
+    local Player = game.Players.LocalPlayer
+
+    State.EggHunt = {
+        esp = false,
+        magnet = false,
+        autoGrab = false,
+        espTexts = {},
+        currentEggIndex = 1,
+        magnetRadius = 25
+    }
+
+    local ESP_COLOR = Color3.fromRGB(0, 255, 255)
+
+    function EggHuntModule.FindAllEggs()
+        local found = {}
+        for _, obj in ipairs(workspace:GetDescendants()) do 
+            if obj.Name == "EasterEgg" and obj.Parent then table.insert(found, obj) end 
+        end
+        return found
+    end
+
+    function EggHuntModule.CreateESP(obj)
+        if obj:FindFirstChild("EggESP_Text") then return end
+        local billboard = Instance.new("BillboardGui")
+        billboard.Name = "EggESP_Text"
+        billboard.Size = UDim2.new(0, 80, 0, 40)
+        billboard.StudsOffset = Vector3.new(0, 3, 0)
+        billboard.AlwaysOnTop = true
+        billboard.Parent = obj
+        
+        local textLabel = Instance.new("TextLabel")
+        textLabel.Name = "TextElement"
+        textLabel.Size = UDim2.new(1, 0, 1, 0)
+        textLabel.BackgroundTransparency = 1
+        textLabel.Text = "[egg]"
+        textLabel.TextColor3 = ESP_COLOR
+        textLabel.Font = Enum.Font.GothamBold
+        textLabel.TextSize = 12
+        textLabel.TextStrokeTransparency = 0
+        textLabel.Parent = billboard
+
+        State.EggHunt.espTexts[obj] = billboard
+    end
+
+    function EggHuntModule.ClearESP()
+        for obj, billboard in pairs(State.EggHunt.espTexts) do 
+            if billboard and billboard.Parent then billboard:Destroy() end 
+        end
+        State.EggHunt.espTexts = {}
+    end
+
+    local FastTravelRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Misc"):WaitForChild("FastTravel")
+    local WaypointsFolder = workspace:WaitForChild("Map"):WaitForChild("Waypoints")
+
+    task.spawn(function()
+        RunService.RenderStepped:Connect(function()
+            local char = Player.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            
+            if hrp and hum and hum.Health > 0 then
+                if hum.WalkSpeed ~= State.EggHunt.walkSpeed then
+                    hum.WalkSpeed = State.EggHunt.walkSpeed
+                end
+
+                if State.EggHunt.esp then
+                    local hrpPos = hrp.Position
+                    for egg, billboard in pairs(State.EggHunt.espTexts) do
+                        if egg.Parent and billboard.Parent and billboard:FindFirstChild("TextElement") then
+                            local eggPos = egg:IsA("Model") and egg:GetPivot().Position or egg.Position
+                            local dist = (hrpPos - eggPos).Magnitude
+                            billboard.TextElement.Text = "[egg]\n[" .. tostring(math.floor(dist)) .. "]"
+                        end
+                    end
+                end
+            end
+        end)
+
+        while task.wait(0.5) do
+            local currentEggs = EggHuntModule.FindAllEggs()
+            
+            if State.EggHunt.magnet then
+                local char = Player.Character
+                local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    for _, egg in ipairs(currentEggs) do
+                        local eggPos = egg:IsA("Model") and egg:GetPivot().Position or egg.Position
+                        if (hrp.Position - eggPos).Magnitude <= State.EggHunt.magnetRadius then
+                            local eggPart = egg:IsA("BasePart") and egg or egg:FindFirstChildWhichIsA("BasePart")
+                            if eggPart and firetouchinterest then
+                                pcall(function()
+                                    firetouchinterest(hrp, eggPart, 0)
+                                    task.wait(0.01)
+                                    firetouchinterest(hrp, eggPart, 1)
+                                end)
+                            end
+                        end
+                    end
+                end
+            end
+            
+            if State.EggHunt.esp then
+                for _, egg in ipairs(currentEggs) do EggHuntModule.CreateESP(egg) end
+                for egg, _ in pairs(State.EggHunt.espTexts) do if not egg.Parent then State.EggHunt.espTexts[egg] = nil end end
+            end
+        end
+    end)
+end
+
 local amazong = ShoppingMart.new(SimpleUI.Utility:IsMobile() and 0.5 or 0.90)
 
 local window = SimpleUI:CreateWindow({
@@ -11653,6 +11860,10 @@ local Tabs = {
         --     ImageRectOffset = Vector2.new(306, 771),
         --     ImageColor3 = Color3.fromRGB(255, 255, 255)
         -- },
+        DualScroll = true
+    }),
+    ESP = SimpleUI:CreateTab(window, "ESP", {
+        Description = "Valuable item, egg, or event ESP",
         DualScroll = true
     }),
     Teleport = SimpleUI:CreateTab(window, "Teleport", {
@@ -12111,6 +12322,41 @@ local function initializeHuntingTab()
             HuntingModule.updateInventoryCache()
             geodeStatus:SetFields({"Status: Idle", "Auto-opening disabled"})
             inventoryDisplay:SetFields({HuntingModule.getFormattedInventoryStatus()})
+        end
+    end)
+end
+
+local function initializedESPTab()
+    local page = Tabs.ESP.Page
+    local LeftPage = page.Left
+    local RightPage = page.Right
+
+    local EggSection = SimpleUI:CreateSection(LeftPage, "🥚 Easter Egg Event", {
+        Style = "box",
+        DefaultExpanded = true,
+        TextSize = 15
+    })
+
+    SimpleUI:CreateToggle(EggSection.Container, "Enable ESP Telur", false, function(state)
+        State.EggHunt.esp = state
+        if not state then EggHuntModule.ClearESP() end
+    end)
+
+    SimpleUI:CreateToggle(EggSection.Container, "Enable Magnet", false, function(state)
+        State.EggHunt.magnet = state
+    end)
+
+    local GeodeSection = SimpleUI:CreateSection(RightPage, "Geodes", {
+        Style = "box",
+        Icon = "rbxassetid://9019175526",
+        DefaultExpanded = true,
+        TextSize = 15
+    })
+
+    SimpleUI:CreateToggle(GeodeSection.Container, "Enable ESP Geode (Distance Only)", false, function(state)
+        State.GeodeHunt.esp = state
+        if not state then 
+            GeodeModule.ClearESP() 
         end
     end)
 end
