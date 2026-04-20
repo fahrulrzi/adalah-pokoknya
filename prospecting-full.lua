@@ -11481,6 +11481,9 @@ local Tabs = {
         --     ImageColor3 = Color3.fromRGB(255, 255, 255)
         -- }
     }),
+    Character = SimpleUI:CreateTab(window, "Character", {
+        Description = "Character utilities"
+    }),
     Miscellaneous = SimpleUI:CreateTab(window, "Miscellaneous", {
         Description = "Excavation sites, environmental barriers, and utilities",
         -- Icon = {
@@ -12564,6 +12567,13 @@ local function initializeShopTab()
     end)
 end
 
+local function initializeCharacterTab()
+    local page = Tabs.Character.Page
+
+    SimpleUI:CreateSection(page, "Character Utilities")
+    SimpleUI:CreateParagraph(page, "Character Management", {"Utilities for managing your character's state and appearance."})
+end
+
 local function initializeMiscellaneousTab()
     local page = Tabs.Miscellaneous.Page
     local LeftPage = page.Left
@@ -12814,6 +12824,7 @@ initializeToolsTab()
 initializeCraftingTab()
 initializeFavouriteTab()
 initializeShopTab()
+initializeCharacterTab()
 initializeMiscellaneousTab()
 initializeSettingsTab()
 
