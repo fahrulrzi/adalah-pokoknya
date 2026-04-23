@@ -11499,22 +11499,23 @@ do
     end
 end
 
-local TreasureHunter = {}
+local TreasureHunter = {
+    isHunting = false,
+    mapsCompleted = 0,
+    homeCFrame = nil,
+    StatusUI = nil
+}
 do
     local Player = game.Players.LocalPlayer
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-    local TreasureHunter = {
-        isHunting = false,
-        mapsCompleted = 0,
-        homeCFrame = nil 
-    }
-
     function TreasureHunter.UpdateStatus(statusText)
-        treasureStatus:SetFields({
-            statusText, 
-            "Maps Completed: " .. TreasureHunter.mapsCompleted
-        })
+        if TreasureHunter.StatusUI then
+            TreasureHunter.StatusUI:SetFields({
+                statusText, 
+                "Maps Completed: " .. TreasureHunter.mapsCompleted
+            })
+        end
     end
 
     function TreasureHunter.findNextMap()
@@ -12167,6 +12168,8 @@ local function initializeHuntingTab()
 
     local treasureStatus = SimpleUI:CreateParagraph(TreasureSection.Container, "Hunt Status",
         {"Status: Idle", "Maps Completed: 0"})
+        
+    TreasureHunter.StatusUI = treasureStatus
 
     SimpleUI:CreateParagraph(TreasureSection.Container, "Instructions",
         {
@@ -12176,20 +12179,20 @@ local function initializeHuntingTab()
         }
     )
 
-    SimpleUI:CreateButton(TreasureSection.Container, "📍 Set Home Location", function()
+    SimpleUI:CreateButton(TreasureSection.Container, "Set Home Location", function()
         local char = Player.Character
         if char and char:FindFirstChild("HumanoidRootPart") then
             TreasureHunter.homeCFrame = char.HumanoidRootPart.CFrame
-            Utility.createNotification("✅ Home Set! Ready to Farm.")
+            Utility.createNotification("Home Set! Ready to Farm.")
             TreasureHunter.UpdateStatus("Status: Home Set!")
         end
     end)
 
-    SimpleUI:CreateButton(TreasureSection.Container, "▶️ Start Treasure Hunt", function()
+    SimpleUI:CreateButton(TreasureSection.Container, "Start Treasure Hunt", function()
         TreasureHunter.Start()
     end)
 
-    SimpleUI:CreateButton(TreasureSection.Container, "⏹️ Stop Treasure Hunt", function()
+    SimpleUI:CreateButton(TreasureSection.Container, "Stop Treasure Hunt", function()
         TreasureHunter.Stop()
     end)
 
