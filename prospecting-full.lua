@@ -11792,10 +11792,6 @@ do
             local hum = char and char:FindFirstChildOfClass("Humanoid")
             
             if hrp and hum and hum.Health > 0 then
-                if hum.WalkSpeed ~= State.EggHunt.walkSpeed then
-                    hum.WalkSpeed = State.EggHunt.walkSpeed
-                end
-
                 if State.EggHunt.esp then
                     local hrpPos = hrp.Position
                     for egg, billboard in pairs(State.EggHunt.espTexts) do
