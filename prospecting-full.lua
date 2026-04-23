@@ -10624,7 +10624,7 @@ do
         local TweenService = SimpleUI.Utility:GetService("TweenService")
         local UserInputService = SimpleUI.Utility:GetService("UserInputService")
 
-        local folderName = "SimpleScripts"
+        local folderName = "KuliJawaScript"
         local fileName = folderName .. "/logo.png"
         local iconUrl = "https://raw.githubusercontent.com/KuliJawa-Maker/ojis/main/assets/kuli-jawa.png" 
         local logoAsset
@@ -10644,13 +10644,16 @@ do
                 end
             end
 
-            if not isfile(fileName) then
-                local success, imageData = pcall(function()
-                    return game:HttpGet(iconUrl)
-                end)
-                if success and imageData then
-                    writefile(fileName, imageData)
-                end
+            -- Always delete old logo to force refresh when URL changes
+            if isfile(fileName) then
+                delfile(fileName)
+            end
+
+            local success, imageData = pcall(function()
+                return game:HttpGet(iconUrl)
+            end)
+            if success and imageData then
+                writefile(fileName, imageData)
             end
 
             logoAsset = getcustomasset(fileName)
