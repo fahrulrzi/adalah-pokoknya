@@ -10644,7 +10644,6 @@ do
                 end
             end
 
-            -- Always delete old logo to force refresh when URL changes
             if isfile(fileName) then
                 delfile(fileName)
             end
@@ -13285,5 +13284,5 @@ initializeServersTab()
 initializeSettingsTab()
 
 if SimpleUI.Utility:IsMobile() then
-    MobileUIModule.createToggleButton(window)
+    MobileUIModule.createToggleButton(window, true)
 end
