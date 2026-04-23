@@ -116,6 +116,13 @@ SimpleUI.WindowControls = {
         Alignment = "Right",
         Transparency = 1,
         Icons = {
+            Minimize = {
+                Image = "rbxassetid://10747384394", -- Placeholder, you can change to a minimize icon
+                ColorKey = "TextPrimary",
+                Size = UDim2.new(0, 16, 0, 16),
+                HoverColor = Color3.fromRGB(60, 60, 60),
+                PressedColor = Color3.fromRGB(80, 80, 80)
+            },
             Maximize = {
                 Image = "rbxassetid://9886659001",
                 ColorKey = "TextPrimary",
@@ -978,6 +985,18 @@ do
                     end)
                 end)
             end
+            if ControlType == "Minimize" then
+                Button.Activated:Connect(function()
+                    local ScreenGui = ParentFrame.Parent.Parent
+                    if not ScreenGui then
+                        return
+                    end
+                    local window = SimpleUI.Windows[ScreenGui]
+                    if window then
+                        window:Toggle()
+                    end
+                end)
+            end
             if ControlType == "Maximize" then
                 Button.Activated:Connect(function()
                     local ScreenGui = ParentFrame.Parent.Parent
@@ -1496,7 +1515,7 @@ do
         function SimpleUI.WindowBuilder:CreateWindowControls(ControlsContainer, Options, Theme)
             local ControlStyle = Options.ControlStyle or "Windows"
             local Controls = Options.WindowControls or
-                                 (ControlStyle == "Windows" and {"Maximize", "Close"} or {"Close", "Maximize"})
+                                 (ControlStyle == "Windows" and {"Minimize", "Maximize", "Close"} or {"Close", "Maximize"})
             local ControlButtons = {}
             if Controls then
                 for Index, ControlType in ipairs(Controls) do
@@ -10607,7 +10626,7 @@ do
 
         local folderName = "SimpleScripts"
         local fileName = folderName .. "/logo.png"
-        local iconUrl = "https://raw.githubusercontent.com/dawnpetal/website/refs/heads/main/assets/images/logo.png"
+        local iconUrl = "https://raw.githubusercontent.com/KuliJawa-Maker/ojis/main/assets/kuli-jawa.png" 
         local logoAsset
 
         local canUseFilesystem = makefolder and isfolder and listfiles and isfile and delfile and writefile and
