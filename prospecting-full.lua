@@ -11497,7 +11497,8 @@ do
             end
         end)
     end
-end
+end 
+-- Treasure Hunter Module
 
 local TreasureHunter = {
     isHunting = false,
