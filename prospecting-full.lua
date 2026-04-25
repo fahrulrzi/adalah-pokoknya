@@ -11861,7 +11861,14 @@ local window = SimpleUI:CreateWindow({
 })
 
 local Tabs = {
-    Main = SimpleUI:CreateTab(window, "Main", {
+    Profile = SimpleUI:CreateTab(window, "Main", {
+        Description = "View and manage your player profile",
+        -- Icon = {
+        --     Image = "rbxassetid://10734966248",
+        --     ImageColor3 = Color3.fromRGB(255, 255, 255)
+        -- }
+    }),
+    Main = SimpleUI:CreateTab(window, "AutoFarming", {
         Description = "Auto Farm and Auto Sell",
         -- Icon = {
         --     Image = "rbxassetid://10734975692",
@@ -11958,6 +11965,86 @@ local Tabs = {
         -- }
     })
 }
+
+local function initializeProfileTab()
+    local page = Tabs.Profile.Page
+    local Player = game.Players.LocalPlayer
+
+    local ProfileSection = SimpleUI:CreateSection(LeftPage, "💳 User Dashboard", {
+        Style = "box",
+        Icon = "rbxassetid://10618928818",
+        DefaultExpanded = true,
+        TextSize = 15
+    })
+
+    local userId = Player.UserId
+    local thumbType = Enum.ThumbnailType.HeadShot
+    local thumbSize = Enum.ThumbnailSize.Size420x420
+    local avatarUrl, isReady = game.Players:GetUserThumbnailAsync(userId, thumbType, thumbSize)
+
+    local AvatarContainer = Instance.new("Frame")
+    AvatarContainer.Size = UDim2.new(1, 0, 0, 80)
+    AvatarContainer.BackgroundTransparency = 1
+    AvatarContainer.Parent = ProfileSection.Container
+
+    local AvatarImage = Instance.new("ImageLabel")
+    AvatarImage.Size = UDim2.new(0, 70, 0, 70)
+    AvatarImage.Position = UDim2.new(0.5, -35, 0.5, -35)
+    AvatarImage.BackgroundTransparency = 1
+    AvatarImage.Image = avatarUrl
+    AvatarImage.Parent = AvatarContainer
+    
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(1, 0)
+    Corner.Parent = AvatarImage
+
+    local Stroke = Instance.new("UIStroke")
+    Stroke.Color = Color3.fromRGB(0, 255, 255)
+    Stroke.Thickness = 2
+    Stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    Stroke.Parent = AvatarImage
+
+    local sessionStart = os.time()
+    local keyExpiryTime = sessionStart + (24 * 60 * 60)
+
+    local ProfileInfo = SimpleUI:CreateParagraph(ProfileSection.Container, "Authentication Info", {
+        "👤 Name: " .. Player.DisplayName .. " (@" .. Player.Name .. ")",
+        "🔑 License: Premium (Kuli Jawa Edition)",
+        "⏱️ Session Time: 00:00:00",
+        "⏳ Key Expires In: Calculating..."
+    })
+
+    -- 4. MASTER LOOP BUAT TIMER BERJALAN
+    task.spawn(function()
+        while task.wait(1) do
+            -- Hitung waktu bermain (Session)
+            local elapsed = os.time() - sessionStart
+            local eHours = math.floor(elapsed / 3600)
+            local eMins = math.floor((elapsed % 3600) / 60)
+            local eSecs = elapsed % 60
+            local sessionString = string.format("%02d:%02d:%02d", eHours, eMins, eSecs)
+
+            -- Hitung sisa waktu Key
+            local remaining = keyExpiryTime - os.time()
+            if remaining <= 0 then
+                remaining = 0
+                -- Di sini lu bisa nambahin fungsi game.Players.LocalPlayer:Kick("Key Expired!") 
+            end
+            local rHours = math.floor(remaining / 3600)
+            local rMins = math.floor((remaining % 3600) / 60)
+            local rSecs = remaining % 60
+            local expireString = string.format("%02dh %02dm %02ds", rHours, rMins, rSecs)
+
+            -- Update Teks UI secara Real-Time
+            ProfileInfo:SetFields({
+                "👤 Name: " .. Player.DisplayName .. " (@" .. Player.Name .. ")",
+                "🔑 License: Premium (Kuli Jawa Edition)",
+                "⏱️ Session Time: " .. sessionString,
+                "⏳ Key Expires In: " .. expireString
+            })
+        end
+    end)
+end
 
 local function initializeMainTab()
     local page = Tabs.Main.Page
@@ -13271,6 +13358,7 @@ local function initializeSettingsTab()
     end
 end
 
+initializeProfileTab()
 initializeMainTab()
 initializeHuntingTab()
 initializeTeleportTab()
