@@ -13357,10 +13357,9 @@ local function initializeFeedbackTab()
     local feedbackMessage = ""
 
     -- Bikin kotak input buat ngetik laporan
-    -- (Catatan: Pastiin SimpleUI lu support CreateInput, kalo ga ada ganti jadi CreateTextBox)
-    SimpleUI:CreateInput(FeedbackSection.Container, "Description", "Type your feedback here...", function(text)
+        SimpleUI:CreateTextInput(FeedbackSection.Container, "Description", "", function(text)
         feedbackMessage = text
-    end)
+        end, { Placeholder = "Type your feedback here..." })
 
     SimpleUI:CreateButton(FeedbackSection.Container, "🚀 Send to developer", function()
         if feedbackMessage == "" or string.len(feedbackMessage) < 5 then
