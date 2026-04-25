@@ -12174,9 +12174,9 @@ local function initializeHuntingTab()
 
     SimpleUI:CreateParagraph(TreasureSection.Container, "Instructions",
         {
-            "1. Set Home Location dulu sebelum mulai.", 
-            "2. Pastiin ada map di inventory/backpack.",
-            "3. Klik Start buat mulai auto-hunt."
+            "1. Set Home Location before starting.", 
+            "2. Make sure you have treasure maps in your inventory or backpack.",
+            "3. Click Start to begin auto-hunt."
         }
     )
 
@@ -12209,15 +12209,6 @@ local function initializeHuntingTab()
 
     local inventoryDisplay = SimpleUI:CreateParagraph(GeodeSection.Container, "Inventory Status",
         {HuntingModule.getFormattedInventoryStatus()})
-
-    SimpleUI:CreateParagraph(GeodeSection.Container, "Geode Extraction Guide",
-        {"Geodes are automatically detected when available in your inventory.", {
-            Text = "The system will equip geodes and automate clicking to extract contents.",
-            IsSubField = true
-        }, {
-            Text = "Extraction continues until all geodes are depleted or backpack is full.",
-            IsSubField = true
-        }})
 
     SimpleUI:CreateButton(GeodeSection.Container, "Start Geode Opening", function()
         if HuntingModule.isGeodeOpening() then
@@ -12409,15 +12400,13 @@ local function initializeTeleportTab()
         WaypointModule.unlockAll()
     end)
 
-    SimpleUI:CreateButton(WaypointsSection.Container, "Emergency Return", function()
+    SimpleUI:CreateButton(WaypointsSection.Container, "Return To Starter", function()
         local waypointFolder = Map:FindFirstChild("Waypoints")
         if waypointFolder then
             ReplicatedStorage.Remotes.Misc.FastTravel:FireServer(waypointFolder["Museum"],
                 waypointFolder["Rubble Creek"])
         end
-    end, {
-        Description = "Instantly return to the starter town in emergencies or when stuck in difficult terrain."
-    })
+    end)
 
     local GeodesSection = SimpleUI:CreateSection(RightPage, "Geode Locations", {
         Style = "box",
@@ -12684,9 +12673,7 @@ local function initializeToolsTab()
             autoEnchantingShovel[1] = false
         end
         Utility.createNotification("All active enchantment processes have been terminated.", 3)
-    end, {
-        Description = "Immediately halts all automatic enchanting for both pan and shovel tools in case of interruption or preference change."
-    })
+    end)
 end
 
 local function initializeCraftingTab()
@@ -13002,13 +12989,6 @@ local function initializeFavouriteTab()
             end
         end
     end)
-
-    SimpleUI:CreateParagraph(page, "Preservation Guide", {"Select Modifier: Choose which modifiers to protect.",
-                                                          "Preserve Items By Modifier: Protects all items with selected modifiers.",
-                                                          "Select Ore Type: Choose an ore category.",
-                                                          "Preserve Items By Ore: Protects all items of that ore.",
-                                                          "Preserve Ore with Modifiers: Requires both ore and modifier selections.",
-                                                          "Enable Automatic Preservation: Protects newly obtained items based on your selections."})
 end
 
 local function initializeShopTab()
@@ -13034,7 +13014,7 @@ local function initializeCharacterTab()
 
     local walkSpeedValue = 16 
 
-    SimpleUI:CreateSlider(page, "🏃 Movement Speed", 16, 100, walkSpeedValue, function(val)
+    SimpleUI:CreateSlider(page, "Movement Speed", 16, 100, walkSpeedValue, function(val)
         walkSpeedValue = val
         local player = game.Players.LocalPlayer
         if player.Character and player.Character:FindFirstChild("Humanoid") then
