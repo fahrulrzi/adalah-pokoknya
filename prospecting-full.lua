@@ -11968,7 +11968,9 @@ local Tabs = {
 
 local function initializeProfileTab()
     local page = Tabs.Profile.Page
-    local Player = game.Players.LocalPlayer
+    local LeftPage = page.Left
+    local RightPage = page.Right
+    -- local Player = game.Players.LocalPlayer
 
     local ProfileSection = SimpleUI:CreateSection(LeftPage, "💳 User Dashboard", {
         Style = "box",
@@ -11976,7 +11978,7 @@ local function initializeProfileTab()
         DefaultExpanded = true,
         TextSize = 15
     })
-
+    
     local userId = Player.UserId
     local thumbType = Enum.ThumbnailType.HeadShot
     local thumbSize = Enum.ThumbnailSize.Size420x420
