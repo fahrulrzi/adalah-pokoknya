@@ -13336,6 +13336,7 @@ local function initializeSettingsTab()
     end
 end
 
+initializeMainTab()
 initializeAutoFarmTab()
 initializeHuntingTab()
 initializedESPTab()
