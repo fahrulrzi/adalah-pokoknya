@@ -11978,11 +11978,7 @@ local Tabs = {
 local function initializeMainTab()
     local page = Tabs.Main.Page
 
-    local ProfileSection = SimpleUI:CreateSection(page, "User Dashboard", {
-        Style = "box",
-        Icon = "rbxassetid://10618928818",
-        TextSize = 18
-    })
+    SimpleUI:CreateSection(page, "User Dashboard")
 
     local userId = Player.UserId
     local thumbType = Enum.ThumbnailType.HeadShot
@@ -12014,7 +12010,7 @@ local function initializeMainTab()
     local sessionStart = os.time()
     local keyExpiryTime = sessionStart + (24 * 60 * 60)
 
-    local ProfileInfo = SimpleUI:CreateParagraph(ProfileSection.Container, "Authentication Info", {
+    local ProfileInfo = SimpleUI:CreateParagraph(page, "Authentication Info", {
         "👤 Name: " .. Player.DisplayName .. " (@" .. Player.Name .. ")",
         "🔑 License: Premium (Kuli Jawa Edition)",
         "⏱️ Session Time: 00:00:00",
@@ -13346,20 +13342,16 @@ local function initializeFeedbackTab()
 
     local WEBHOOK_URL = "https://discord.com/api/webhooks/1497582359686680637/db-sr-XQxfRq_6tMI4zoqV_6WJhnOtDN5rEjIawWhwhntT23kM0sWbCKEOMorwG11tFq"
 
-    local FeedbackSection = SimpleUI:CreateSection(page, "📢 Report Bug & Feedback", {
-        Style = "box",
-        Icon = "rbxassetid://11326670014",
-        TextSize = 18
-    })
+    SimpleUI:CreateSection(page, "📢 Report Bug & Feedback")
 
     local feedbackMessage = ""
 
     -- Bikin kotak input buat ngetik laporan
-        SimpleUI:CreateTextInput(FeedbackSection.Container, "Description", "", function(text)
+        SimpleUI:CreateTextInput(page, "Description", "", function(text)
         feedbackMessage = text
         end, { Placeholder = "Type your feedback here..." })
 
-    SimpleUI:CreateButton(FeedbackSection.Container, "🚀 Send to developer", function()
+    SimpleUI:CreateButton(page, "🚀 Send to developer", function()
         if feedbackMessage == "" or string.len(feedbackMessage) < 5 then
             Utility.createNotification("❌ Laporan terlalu pendek ngab!")
             return
