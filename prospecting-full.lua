@@ -11965,14 +11965,14 @@ local Tabs = {
         --     ImageRectOffset = Vector2.new(771, 257),
         --     ImageColor3 = Color3.fromRGB(255, 255, 255)
         -- }
-    }),
-    Feedback = SimpleUI:CreateTab(window, "Feedback", {
-        Description = "Report bugs or suggest features",
-        -- Icon = {
-        --     Image = "rbxassetid://10734966248",
-        --     ImageColor3 = Color3.fromRGB(255, 255, 255)
-        -- }
     })
+    -- Feedback = SimpleUI:CreateTab(window, "Feedback", {
+    --     Description = "Report bugs or suggest features",
+    --     -- Icon = {
+    --     --     Image = "rbxassetid://10734966248",
+    --     --     ImageColor3 = Color3.fromRGB(255, 255, 255)
+    --     -- }
+    -- })
 }
 
 local function initializeMainTab()
