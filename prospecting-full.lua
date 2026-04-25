@@ -11965,6 +11965,13 @@ local Tabs = {
         --     ImageRectOffset = Vector2.new(771, 257),
         --     ImageColor3 = Color3.fromRGB(255, 255, 255)
         -- }
+    }),
+    Feedback = SimpleUI:CreateTab(window, "Feedback", {
+        Description = "Report bugs or suggest features",
+        -- Icon = {
+        --     Image = "rbxassetid://10734966248",
+        --     ImageColor3 = Color3.fromRGB(255, 255, 255)
+        -- }
     })
 }
 
@@ -13334,6 +13341,88 @@ local function initializeSettingsTab()
     end
 end
 
+local function initializeFeedbackTab()
+    local page = Tabs.Feedback.Page
+    local HttpService = game:GetService("HttpService")
+
+    local WEBHOOK_URL = "https://discord.com/api/webhooks/1497582359686680637/db-sr-XQxfRq_6tMI4zoqV_6WJhnOtDN5rEjIawWhwhntT23kM0sWbCKEOMorwG11tFq"
+
+    local FeedbackSection = SimpleUI:CreateSection(page, "📢 Report Bug & Feedback", {
+        Style = "box",
+        Icon = "rbxassetid://11326670014",
+        DefaultExpanded = true,
+        TextSize = 18
+    })
+
+    local feedbackMessage = ""
+
+    -- Bikin kotak input buat ngetik laporan
+    -- (Catatan: Pastiin SimpleUI lu support CreateInput, kalo ga ada ganti jadi CreateTextBox)
+    SimpleUI:CreateInput(FeedbackSection.Container, "Description", "Type your feedback here...", function(text)
+        feedbackMessage = text
+    end)
+
+    SimpleUI:CreateButton(FeedbackSection.Container, "🚀 Send to developer", function()
+        if feedbackMessage == "" or string.len(feedbackMessage) < 5 then
+            Utility.createNotification("❌ Laporan terlalu pendek ngab!")
+            return
+        end
+
+        local requestFunc = syn and syn.request or http and http.request or request or fluxus and fluxus.request
+        
+        if not requestFunc then
+            Utility.createNotification("❌ HTTP request function not found. Cannot send feedback.")
+            return
+        end
+
+        Utility.createNotification("⏳ Sending your feedback...")
+
+        local data = {
+            ["content"] = "", -- Bisa lu isi tag role misal "<@&ROLE_ID>" kalo mau dinotif
+            ["embeds"] = {{
+                ["title"] = "🐛 New Bug Report / Feedback",
+                ["description"] = "**Pesan:**\n" .. feedbackMessage,
+                ["type"] = "rich",
+                ["color"] = tonumber(0x00FFFF),
+                ["fields"] = {
+                    {
+                        ["name"] = "Player Info",
+                        ["value"] = "Username: " .. Player.Name .. "\nUser ID: " .. Player.UserId,
+                        ["inline"] = true
+                    },
+                    {
+                        ["name"] = "Game Info",
+                        ["value"] = "Place ID: " .. game.PlaceId .. "\nJob ID: " .. game.JobId,
+                        ["inline"] = true
+                    }
+                },
+                ["footer"] = {
+                    ["text"] = "Kuli Jawa Premium Script - Telemetry"
+                },
+                ["timestamp"] = DateTime.now():ToIsoDate()
+            }}
+        }
+
+        task.spawn(function()
+            local success, response = pcall(function()
+                return requestFunc({
+                    Url = WEBHOOK_URL,
+                    Method = "POST",
+                    Headers = {["Content-Type"] = "application/json"},
+                    Body = HttpService:JSONEncode(data)
+                })
+            end)
+
+            if success then
+                Utility.createNotification("✅ Feedback successfully sent!")
+                feedbackMessage = ""
+            else
+                Utility.createNotification("❌ Failed to send feedback: ")
+            end
+        end)
+    end)
+end
+
 initializeMainTab()
 initializeAutoFarmTab()
 initializeHuntingTab()
@@ -13347,6 +13436,7 @@ initializeCharacterTab()
 initializeOthersTab()
 initializeServersTab()
 initializeSettingsTab()
+initializeFeedbackTab()
 
 if SimpleUI.Utility:IsMobile() then
     MobileUIModule.createToggleButton(window, true)
