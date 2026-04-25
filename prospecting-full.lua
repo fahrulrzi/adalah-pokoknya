@@ -11970,8 +11970,10 @@ local Tabs = {
 
 local function initializeMainTab()
     local page = Tabs.Main.Page
+    local LeftPage = page.Left
+    local RightPage = page.Right
 
-    local ProfileSection = SimpleUI:CreateSection(page, "User Dashboard", {
+    local ProfileSection = SimpleUI:CreateSection(LeftPage, "💳 User Dashboard", {
         Style = "box",
         Icon = "rbxassetid://10618928818",
         DefaultExpanded = true,
