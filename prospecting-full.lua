@@ -11650,7 +11650,7 @@ do
         if TreasureHunter.isHunting then return end
         
         if not TreasureHunter.homeCFrame then
-            Utility.createNotification("❌ Set Home Location dulu ngab!")
+            Utility.createNotification("Error: Home position not set. Please set a home position before starting treasure hunting.", 4)
             return
         end
 
@@ -13253,6 +13253,7 @@ end
 
 initializeAutoFarmTab()
 initializeHuntingTab()
+initializedESPTab()
 initializeTeleportTab()
 initializeToolsTab()
 initializeCraftingTab()
