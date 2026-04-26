@@ -11977,7 +11977,7 @@ local Tabs = {
 local function initializeMainTab()
     local page = Tabs.Main.Page
 
-    local ProfileSection = SimpleUI:CreateSection(page, "User Dashboard")
+    SimpleUI:CreateSection(page, "User Dashboard")
 
     local userId = Player.UserId
     local thumbType = Enum.ThumbnailType.HeadShot
@@ -11987,7 +11987,7 @@ local function initializeMainTab()
     local AvatarContainer = Instance.new("Frame")
     AvatarContainer.Size = UDim2.new(1, 0, 0, 80)
     AvatarContainer.BackgroundTransparency = 1
-    AvatarContainer.Parent = ProfileSection.Container
+    AvatarContainer.Parent = page
 
     local AvatarImage = Instance.new("ImageLabel")
     AvatarImage.Size = UDim2.new(0, 70, 0, 70)
