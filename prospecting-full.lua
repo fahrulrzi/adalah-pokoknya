@@ -11868,7 +11868,6 @@ local Tabs = {
         --     Size = UDim2.new(0, 16, 0, 16),
         --     ImageColor3 = Color3.fromRGB(255, 255, 255)
         -- },
-        DualScroll = true
     }),
     AutoFarm = SimpleUI:CreateTab(window, "AutoFarming", {
         Description = "Auto Farm and Auto Sell",
@@ -12014,7 +12013,7 @@ local function initializeMainTab()
     local sessionStart = os.time()
     local keyExpiryTime = sessionStart + (24 * 60 * 60)
 
-    local ProfileInfo = SimpleUI:CreateParagraph(page, "Authentication Info", {
+    local ProfileInfo = SimpleUI:CreateParagraph(LeftPage, "Authentication Info", {
         "👤 Name: " .. Player.DisplayName .. " (@" .. Player.Name .. ")",
         "🔑 License: Premium (Kuli Jawa Edition)",
         "⏱️ Session Time: 00:00:00",
