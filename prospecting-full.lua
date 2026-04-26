@@ -12013,7 +12013,7 @@ local function initializeMainTab()
     local sessionStart = os.time()
     local keyExpiryTime = sessionStart + (24 * 60 * 60)
 
-    local ProfileInfo = SimpleUI:CreateParagraph(LeftPage, "Authentication Info", {
+    local ProfileInfo = SimpleUI:CreateParagraph(page, "Authentication Info", {
         "👤 Name: " .. Player.DisplayName .. " (@" .. Player.Name .. ")",
         "🔑 License: Premium (Kuli Jawa Edition)",
         "⏱️ Session Time: 00:00:00",
