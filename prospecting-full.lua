@@ -11978,7 +11978,11 @@ local Tabs = {
 local function initializeMainTab()
     local page = Tabs.Main.Page
 
-    SimpleUI:CreateSection(page, "User Dashboard")
+    local ProfileSection = SimpleUI:CreateSection(page, "User Dashboard", {
+        Style = "box",
+        DefaultExpanded = true,
+        TextSize = 15
+    })
 
     local userId = Player.UserId
     local thumbType = Enum.ThumbnailType.HeadShot
