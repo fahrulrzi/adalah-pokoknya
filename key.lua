@@ -205,7 +205,7 @@ VerifyBtn.MouseButton1Click:Connect(function()
                 
                 -- SALAMAN RAHASIA & PANGGIL SCRIPT UTAMA
                 _G.AuthToken_EggHunter = "KuliJawa_M4nt4p_2026"
-                loadstring(game:HttpGet("https://raw.githubusercontent.com/KuliJawa-Maker/ojis/refs/heads/main/game/129827112113663.lua"))()
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/fahrulrzi/adalah-pokoknya/refs/heads/main/pros.lua"))()
                 _G.AuthToken_EggHunter = nil
             else
                 VerifyBtn.Text = "VERIFY KEY"
