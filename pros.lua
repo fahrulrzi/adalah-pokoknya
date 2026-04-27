@@ -1,3 +1,10 @@
+if _G.AuthToken_EggHunter ~= "KuliJawa_M4nt4p_2026" then
+    game.Players.LocalPlayer:Kick("Unauthorized access! Please verify your key to use this script.")
+    return 
+end
+
+_G.AuthToken_EggHunter = nil
+
 local gethui = gethui or function()
     return game:GetService("CoreGui")
 end
