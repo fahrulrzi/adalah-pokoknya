@@ -5,6 +5,104 @@ end
 
 _G.AuthToken_EggHunter = nil
 
+local HttpService = game:GetService("HttpService")
+local RbxAnalytics = game:GetService("RbxAnalyticsService")
+
+-- Fungsi buat support semua jenis Executor (Delta, Codex, dll)
+local requestFunc = syn and syn.request or http and http.request or request or fluxus and fluxus.request
+
+-- ==========================================
+-- 🔑 KEY SYSTEM MODULE
+-- ==========================================
+local KeySystem = {
+    IsVerified = false,
+    KeyString = "",
+    Tier = "None",        -- Nanti isinya: "Free" atau "Premium"
+    Duration = "None",    -- Nanti isinya: "24H", "30D", atau "Lifetime"
+    ExpiryTime = 0,       -- Unix timestamp matinya key
+    HWID = RbxAnalytics:GetClientId(),
+    
+    -- Ganti pake URL API Next.js lu nanti
+    API_URL = "https://kuli-jawa-key-api.vercel.app/api" 
+}
+
+function KeySystem.Verify(inputKey)
+    if not requestFunc then
+        return false, "Executor ga support HTTP Request!"
+    end
+
+    -- Hit API lu buat ngecek Key
+    local success, response = pcall(function()
+        return requestFunc({
+            -- Pake tanda ? dan & buat masukin data ke URL
+            Url = KeySystem.API_URL .. "/verify?key=" .. inputKey .. "&hwid=" .. KeySystem.HWID,
+            Method = "GET", 
+            -- Kalo GET, ga perlu pake Headers Content-Type dan Body JSON
+        })
+    end)
+
+    if success and response.StatusCode == 200 then
+        local data = HttpService:JSONDecode(response.Body)
+        
+        if data.success then
+            -- Simpen data dari Database ke memori Script
+            KeySystem.IsVerified = true
+            KeySystem.KeyString = inputKey
+            KeySystem.Tier = data.tier           -- "Free" / "Premium"
+            KeySystem.Duration = data.duration   -- "24H" / "Lifetime"
+            KeySystem.ExpiryTime = data.expiry   -- Timestamp
+            
+            -- Kalo lolos, langsung nyalain Master Loop Heartbeat
+            KeySystem.StartHeartbeat()
+            return true, "Success"
+        else
+            return false, data.message or "Key invalid atau sedang digunakan!"
+        end
+    else
+        return false, "Gagal konek ke Server Database."
+    end
+end
+
+function KeySystem.StartHeartbeat()
+    task.spawn(function()
+        while KeySystem.IsVerified do
+            task.wait(60) -- Kirim ping tiap 60 detik
+
+            local success, response = pcall(function()
+                return requestFunc({
+                    Url = KeySystem.API_URL .. "/ping",
+                    Method = "POST",
+                    Headers = {["Content-Type"] = "application/json"},
+                    Body = HttpService:JSONEncode({
+                        key = KeySystem.KeyString,
+                        hwid = KeySystem.HWID
+                    })
+                })
+            end)
+
+            if success and response.StatusCode == 200 then
+                local data = HttpService:JSONDecode(response.Body)
+                -- Kalo API ngerespon HWID beda (Akun B lagi nyoba masuk), kick Akun A!
+                if data.action == "KICK" then
+                    KeySystem.IsVerified = false
+                    game.Players.LocalPlayer:Kick("Key sedang digunakan di Device lain!")
+                end
+            end
+        end
+    end)
+end
+
+-- Fungsi pembantu buat ngecek sisa waktu (Buat ditampilin di UI)
+function KeySystem.GetTimeLeft()
+    if KeySystem.Duration == "Lifetime" then return "Permanent" end
+    local sisa = KeySystem.ExpiryTime - os.time()
+    if sisa <= 0 then return "Expired" end
+    
+    local rHours = math.floor(sisa / 3600)
+    local rMins = math.floor((sisa % 3600) / 60)
+    return string.format("%02dh %02dm", rHours, rMins)
+end
+
 local gethui = gethui or function()
     return game:GetService("CoreGui")
 end
@@ -12014,13 +12112,12 @@ local function initializeMainTab()
     Stroke.Parent = AvatarImage
 
     local sessionStart = os.time()
-    local keyExpiryTime = sessionStart + (24 * 60 * 60)
 
     local ProfileInfo = SimpleUI:CreateParagraph(page, "Authentication Info", {
         "👤 Name: " .. Player.DisplayName .. " (@" .. Player.Name .. ")",
-        "🔑 License: Premium (Kuli Jawa Edition)",
-        "⏱️ Session Time: 00:00:00",
-        "⏳ Key Expires In: Calculating..."
+        "🔑 License: " .. KeySystem.Tier,
+        "⏱️ Session Time: " .. "00:00:00",
+        "⏳ Key Expires In: " .. KeySystem.GetTimeLeft() 
     })
 
     task.spawn(function()
@@ -12031,20 +12128,11 @@ local function initializeMainTab()
             local eSecs = elapsed % 60
             local sessionString = string.format("%02d:%02d:%02d", eHours, eMins, eSecs)
 
-            local remaining = keyExpiryTime - os.time()
-            if remaining <= 0 then
-                remaining = 0
-            end
-            local rHours = math.floor(remaining / 3600)
-            local rMins = math.floor((remaining % 3600) / 60)
-            local rSecs = remaining % 60
-            local expireString = string.format("%02dh %02dm %02ds", rHours, rMins, rSecs)
-
             ProfileInfo:SetFields({
                 "👤 Name: " .. Player.DisplayName .. " (@" .. Player.Name .. ")",
-                "🔑 License: Premium (Kuli Jawa Edition)",
+                "🔑 License: " .. KeySystem.Tier,
                 "⏱️ Session Time: " .. sessionString,
-                "⏳ Key Expires In: " .. expireString
+                "⏳ Key Expires In: " .. KeySystem.GetTimeLeft() -- Manggil dari object lu!
             })
         end
     end)
@@ -13436,3 +13524,31 @@ initializeFeedbackTab()
 if SimpleUI.Utility:IsMobile() then
     MobileUIModule.createToggleButton(window, true)
 end
+
+task.spawn(function()
+    while true do
+        task.wait(60)
+        
+        local success, res = pcall(function()
+            return request({
+                Url = "https://key-system-telur.vercel.app/api/ping",
+                Method = "POST",
+                Headers = {["Content-Type"] = "application/json"},
+                Body = game:GetService("HttpService"):JSONEncode({
+                    key = _G.UserKey,
+                    hwid = game:GetService("RbxAnalyticsService"):GetClientId()
+                })
+            })
+        end)
+
+        if success and res.StatusCode == 200 then
+            local data = game:GetService("HttpService"):JSONDecode(res.Body)
+            if data.action == "KICK" then
+                game.Players.LocalPlayer:Kick("❌ Session lu diambil alih atau Expired!")
+            end
+        else
+
+            warn("Ping ke server gagal...")
+        end
+    end
+end)
