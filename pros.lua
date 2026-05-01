@@ -6740,7 +6740,7 @@ local ShoppingMart = (function()
         end
 
         local success, coreGui = pcall(function()
-            return self:getService("CoreGui")
+            return game:GetService("CoreGui")
         end)
         if success and coreGui then
             return coreGui
@@ -6751,18 +6751,19 @@ local ShoppingMart = (function()
 
     local playerGui = getSafeContainer()
 
+    -- 🔥 TEMA KULI JAWA (Dark & Cyan Cyberpunk) 🔥
     local Theme = {
-        Background = Color3.fromRGB(14, 14, 16),
-        Surface = Color3.fromRGB(22, 22, 26),
-        SurfaceAlt = Color3.fromRGB(30, 30, 34),
-        TextPrimary = Color3.fromRGB(240, 240, 245),
-        TextSecondary = Color3.fromRGB(150, 150, 160),
-        Accent = Color3.fromRGB(255, 107, 0),
-        AccentDark = Color3.fromRGB(200, 80, 0),
-        Success = Color3.fromRGB(52, 199, 89),
-        Danger = Color3.fromRGB(255, 59, 48),
-        Stroke = Color3.fromRGB(45, 45, 50),
-        ShardPrice = Color3.fromRGB(245, 170, 210)
+        Background = Color3.fromRGB(15, 20, 30),
+        Surface = Color3.fromRGB(30, 35, 45),
+        SurfaceAlt = Color3.fromRGB(40, 45, 55),
+        TextPrimary = Color3.fromRGB(255, 255, 255),
+        TextSecondary = Color3.fromRGB(150, 150, 150),
+        Accent = Color3.fromRGB(0, 200, 200), -- Cyan Kuli Jawa
+        AccentDark = Color3.fromRGB(0, 150, 150),
+        Success = Color3.fromRGB(0, 200, 0),
+        Danger = Color3.fromRGB(255, 50, 50),
+        Stroke = Color3.fromRGB(0, 255, 255),
+        ShardPrice = Color3.fromRGB(255, 215, 0) -- Emas
     }
 
     local NumberFormatter = {}
@@ -6935,6 +6936,7 @@ local ShoppingMart = (function()
         local buffer = 20
         scrollFrame.CanvasSize = UDim2.fromOffset(0, (contentSize.Y / self.uiScale) + padTop + padBottom + buffer)
     end
+
     function ShoppingMartClass:AddToCart(itemData)
         for _, cartItem in ipairs(self.shoppingCart) do
             if cartItem.name == itemData.name then
@@ -6997,7 +6999,7 @@ local ShoppingMart = (function()
 
     function ShoppingMartClass:CreateUI()
         local screenGui = Instance.new("ScreenGui")
-        screenGui.Name = "ShoppingMartUI_" .. tostring(os.clock())
+        screenGui.Name = "KuliJawaMart_" .. tostring(os.clock())
         screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
         screenGui.ResetOnSpawn = false
         screenGui.Enabled = false
@@ -7012,6 +7014,12 @@ local ShoppingMart = (function()
         mainFrame.BorderSizePixel = 0
         mainFrame.Parent = screenGui
 
+        -- Tambahin Stroke Pinggiran ala Kuli Jawa UI
+        local mainStroke = Instance.new("UIStroke")
+        mainStroke.Color = Theme.Stroke
+        mainStroke.Thickness = 2
+        mainStroke.Parent = mainFrame
+
         local scale = Instance.new("UIScale")
         scale.Scale = self.uiScale
         scale.Parent = mainFrame
@@ -7022,11 +7030,8 @@ local ShoppingMart = (function()
         local inputBlocker = Instance.new("TextButton")
         inputBlocker.Name = "InputBlocker"
         inputBlocker.Size = UDim2.new(1, 0, 1, 0)
-        inputBlocker.Position = UDim2.new(0, 0, 0, 0)
         inputBlocker.BackgroundTransparency = 1
         inputBlocker.Text = ""
-        inputBlocker.AutoButtonColor = false
-        inputBlocker.BorderSizePixel = 0
         inputBlocker.Visible = false
         inputBlocker.Parent = mainFrame
 
@@ -7075,18 +7080,18 @@ local ShoppingMart = (function()
         topBar.Parent = parent
 
         local topCover = Instance.new("Frame")
-        topCover.Size = UDim2.new(1, 0, 0, 1)
+        topCover.Size = UDim2.new(1, 0, 0, 2)
         topCover.Position = UDim2.new(0, 0, 1, 0)
-        topCover.BackgroundColor3 = Theme.AccentDark
+        topCover.BackgroundColor3 = Theme.Stroke
         topCover.BorderSizePixel = 0
         topCover.Parent = topBar
 
         local titleLabel = Instance.new("TextLabel")
-        titleLabel.Size = UDim2.new(0, 200, 1, 0)
+        titleLabel.Size = UDim2.new(0, 300, 1, 0)
         titleLabel.Position = UDim2.new(0, 20, 0, 0)
         titleLabel.BackgroundTransparency = 1
-        titleLabel.Text = "WALMART WOHOOO"
-        titleLabel.TextColor3 = Theme.TextPrimary
+        titleLabel.Text = "🛠️ TOKO MATERIAL KULI JAWA"
+        titleLabel.TextColor3 = Theme.Accent
         titleLabel.TextSize = 20
         titleLabel.Font = Enum.Font.GothamBold
         titleLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -7097,8 +7102,8 @@ local ShoppingMart = (function()
         closeButton.Position = UDim2.new(1, -46, 0.5, 0)
         closeButton.AnchorPoint = Vector2.new(0, 0.5)
         closeButton.BackgroundTransparency = 1
-        closeButton.Text = "x"
-        closeButton.TextColor3 = Theme.TextSecondary
+        closeButton.Text = "X"
+        closeButton.TextColor3 = Theme.Danger
         closeButton.TextSize = 18
         closeButton.Font = Enum.Font.GothamBold
         closeButton.BorderSizePixel = 0
@@ -7108,21 +7113,21 @@ local ShoppingMart = (function()
         self:CreateCorner(8).Parent = closeButton
 
         closeButton.MouseEnter:Connect(function()
-            closeButton.BackgroundColor3 = Theme.Accent
+            closeButton.BackgroundColor3 = Theme.Danger
             closeButton.TextColor3 = Theme.TextPrimary
         end)
 
         closeButton.MouseLeave:Connect(function()
             closeButton.BackgroundColor3 = Theme.Surface
-            closeButton.TextColor3 = Theme.TextSecondary
+            closeButton.TextColor3 = Theme.Danger
         end)
 
         closeButton.MouseButton1Click:Connect(function()
             self.gui.Enabled = false
         end)
 
+        -- Drag logic
         local UserInputService = game:GetService("UserInputService")
-
         local dragging, dragStart, startPos = false, nil, nil
 
         topBar.InputBegan:Connect(function(input)
@@ -7138,18 +7143,10 @@ local ShoppingMart = (function()
             end
         end)
 
-        UserInputService.InputEnded:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                dragging = false
-            end
-        end)
-
         UserInputService.InputChanged:Connect(function(input)
-            if dragging and
-                (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
                 local delta = input.Position - dragStart
-                parent.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale,
-                    startPos.Y.Offset + delta.Y)
+                parent.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
             end
         end)
     end
@@ -7182,7 +7179,7 @@ local ShoppingMart = (function()
             local button = Instance.new("TextButton")
             button.Size = UDim2.new(0, 0, 0, 32)
             button.AutomaticSize = Enum.AutomaticSize.X
-            button.BackgroundColor3 = category == self.selectedCategory and Theme.Accent or Theme.Surface
+            button.BackgroundColor3 = category == self.selectedCategory and Theme.AccentDark or Theme.SurfaceAlt
             button.Text = category
             button.TextColor3 = category == self.selectedCategory and Theme.TextPrimary or Theme.TextSecondary
             button.TextSize = 13
@@ -7201,7 +7198,7 @@ local ShoppingMart = (function()
                 self.selectedCategory = category
                 for _, btn in ipairs(categoryBar:GetChildren()) do
                     if btn:IsA("TextButton") then
-                        btn.BackgroundColor3 = btn.Text == self.selectedCategory and Theme.Accent or Theme.Surface
+                        btn.BackgroundColor3 = btn.Text == self.selectedCategory and Theme.AccentDark or Theme.SurfaceAlt
                         btn.TextColor3 = btn.Text == self.selectedCategory and Theme.TextPrimary or Theme.TextSecondary
                     end
                 end
@@ -7241,8 +7238,8 @@ local ShoppingMart = (function()
         cartTitle.Size = UDim2.new(1, -24, 0, 32)
         cartTitle.Position = UDim2.new(0, 12, 0, 12)
         cartTitle.BackgroundTransparency = 1
-        cartTitle.Text = "Your Cart"
-        cartTitle.TextColor3 = Theme.TextPrimary
+        cartTitle.Text = "🛒 Keranjang Kuli"
+        cartTitle.TextColor3 = Theme.Accent
         cartTitle.TextSize = 16
         cartTitle.Font = Enum.Font.GothamBold
         cartTitle.TextXAlignment = Enum.TextXAlignment.Left
@@ -7256,7 +7253,7 @@ local ShoppingMart = (function()
         cartScrollFrame.BorderSizePixel = 0
         cartScrollFrame.Active = true
         cartScrollFrame.ScrollBarThickness = 4
-        cartScrollFrame.ScrollBarImageColor3 = Color3.fromRGB(200, 200, 205)
+        cartScrollFrame.ScrollBarImageColor3 = Theme.Stroke
         cartScrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
         cartScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
         cartScrollFrame.Parent = parent
@@ -7285,7 +7282,7 @@ local ShoppingMart = (function()
         totalLabel.Size = UDim2.new(1, -24, 0, 24)
         totalLabel.Position = UDim2.new(0, 12, 0, 12)
         totalLabel.BackgroundTransparency = 1
-        totalLabel.Text = "Total: $0"
+        totalLabel.Text = "Tagihan: $0"
         totalLabel.TextColor3 = Theme.TextPrimary
         totalLabel.TextSize = 18
         totalLabel.Font = Enum.Font.GothamBold
@@ -7297,8 +7294,8 @@ local ShoppingMart = (function()
         itemCountLabel.Size = UDim2.new(1, -24, 0, 18)
         itemCountLabel.Position = UDim2.new(0, 12, 0, 38)
         itemCountLabel.BackgroundTransparency = 1
-        itemCountLabel.Text = "0 items"
-        itemCountLabel.TextColor3 = Color3.fromRGB(140, 140, 145)
+        itemCountLabel.Text = "0 Barang"
+        itemCountLabel.TextColor3 = Theme.TextSecondary
         itemCountLabel.TextSize = 13
         itemCountLabel.Font = Enum.Font.Gotham
         itemCountLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -7308,13 +7305,18 @@ local ShoppingMart = (function()
         checkoutButton.Name = "CheckoutButton"
         checkoutButton.Size = UDim2.new(1, -24, 0, 44)
         checkoutButton.Position = UDim2.new(0, 12, 0, 64)
-        checkoutButton.BackgroundColor3 = Theme.Accent
-        checkoutButton.Text = "Checkout"
-        checkoutButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        checkoutButton.BackgroundColor3 = Theme.AccentDark
+        checkoutButton.Text = "BAYAR KE MANDOR"
+        checkoutButton.TextColor3 = Theme.TextPrimary
         checkoutButton.TextSize = 15
         checkoutButton.Font = Enum.Font.GothamBold
         checkoutButton.BorderSizePixel = 0
         checkoutButton.Parent = checkoutFrame
+
+        local chkStroke = Instance.new("UIStroke")
+        chkStroke.Color = Theme.Stroke
+        chkStroke.Thickness = 1
+        chkStroke.Parent = checkoutButton
 
         self:CreateCorner(10).Parent = checkoutButton
 
@@ -7400,13 +7402,18 @@ local ShoppingMart = (function()
         local buyButton = Instance.new("TextButton")
         buyButton.Size = UDim2.new(1, 0, 0, 38)
         buyButton.Position = UDim2.new(0, 0, 1, -38)
-        buyButton.BackgroundColor3 = Theme.Accent
-        buyButton.Text = "ADD TO CART"
-        buyButton.TextColor3 = Theme.TextPrimary
-        buyButton.TextSize = 14
+        buyButton.BackgroundColor3 = Theme.SurfaceAlt
+        buyButton.Text = "MASUKIN KARUNG"
+        buyButton.TextColor3 = Theme.Accent
+        buyButton.TextSize = 12
         buyButton.Font = Enum.Font.GothamBold
         buyButton.BorderSizePixel = 0
         buyButton.Parent = card
+
+        local btnStroke = Instance.new("UIStroke")
+        btnStroke.Color = Theme.Stroke
+        btnStroke.Thickness = 1
+        btnStroke.Parent = buyButton
 
         self:CreateCorner(12).Parent = buyButton
 
@@ -7414,11 +7421,13 @@ local ShoppingMart = (function()
             self:AddToCart(itemData)
             self:UpdateCart()
 
-            buyButton.Text = "ADDED"
+            buyButton.Text = "MASUK!"
             buyButton.BackgroundColor3 = Theme.Success
+            buyButton.TextColor3 = Theme.Background
             task.wait(1)
-            buyButton.Text = "ADD TO CART"
-            buyButton.BackgroundColor3 = Theme.Accent
+            buyButton.Text = "MASUKIN KARUNG"
+            buyButton.BackgroundColor3 = Theme.SurfaceAlt
+            buyButton.TextColor3 = Theme.Accent
         end)
 
         return card
@@ -7439,19 +7448,21 @@ local ShoppingMart = (function()
         title.BackgroundTransparency = 1
         title.Text = cartItem.name
         title.TextColor3 = Theme.TextPrimary
-        title.TextSize = 18
+        title.TextSize = 16
         title.Font = Enum.Font.GothamBold
         title.TextXAlignment = Enum.TextXAlignment.Left
         title.TextYAlignment = Enum.TextYAlignment.Top
         title.TextTruncate = Enum.TextTruncate.AtEnd
         title.Parent = frame
 
-        local removeButton = Instance.new("ImageButton")
-        removeButton.Size = UDim2.new(0, 14, 0, 14)
+        local removeButton = Instance.new("TextButton")
+        removeButton.Size = UDim2.new(0, 20, 0, 20)
         removeButton.Position = UDim2.new(1, -25, 0.2, 0)
-        removeButton.Image = "rbxassetid://10747362393"
-        removeButton.ImageColor3 = Theme.Danger
         removeButton.BackgroundTransparency = 1
+        removeButton.Text = "X"
+        removeButton.TextColor3 = Theme.Danger
+        removeButton.Font = Enum.Font.GothamBold
+        removeButton.TextSize = 14
         removeButton.Parent = frame
 
         removeButton.MouseButton1Click:Connect(function()
@@ -7497,7 +7508,7 @@ local ShoppingMart = (function()
         qtyLabel.Position = UDim2.new(0, 20, 0, 0)
         qtyLabel.BackgroundTransparency = 1
         qtyLabel.Text = tostring(cartItem.quantity)
-        qtyLabel.TextColor3 = Theme.TextPrimary
+        qtyLabel.TextColor3 = Theme.Accent
         qtyLabel.TextSize = 14
         qtyLabel.Font = Enum.Font.GothamBold
         qtyLabel.TextXAlignment = Enum.TextXAlignment.Center
@@ -7524,17 +7535,13 @@ local ShoppingMart = (function()
     end
 
     function ShoppingMartClass:UpdateCart()
-        if not self.gui then
-            return
-        end
+        if not self.gui then return end
 
         local cartScrollFrame = self.gui.MainFrame.ContentFrame.RightPanel.CartScrollFrame
         local checkoutFrame = self.gui.MainFrame.ContentFrame.RightPanel.CheckoutFrame
 
         for _, child in ipairs(cartScrollFrame:GetChildren()) do
-            if child:IsA("Frame") then
-                child:Destroy()
-            end
+            if child:IsA("Frame") then child:Destroy() end
         end
 
         for _, cartItem in ipairs(self.shoppingCart) do
@@ -7545,9 +7552,7 @@ local ShoppingMart = (function()
         local totals = self:CalculateTotals()
         local totalText = ""
         for currency, amount in pairs(totals) do
-            if totalText ~= "" then
-                totalText = totalText .. " + "
-            end
+            if totalText ~= "" then totalText = totalText .. " + " end
             totalText = totalText .. currency .. NumberFormatter.Format(amount)
         end
 
@@ -7555,26 +7560,22 @@ local ShoppingMart = (function()
         local itemCountLabel = checkoutFrame:FindFirstChild("ItemCountLabel")
 
         if totalLabel then
-            totalLabel.Text = "Total: " .. (totalText ~= "" and totalText or "$0")
+            totalLabel.Text = "Tagihan: " .. (totalText ~= "" and totalText or "$0")
         end
 
         if itemCountLabel then
             local count = self:GetItemCount()
-            itemCountLabel.Text = count .. " item" .. (count ~= 1 and "s" or "")
+            itemCountLabel.Text = count .. " Barang"
         end
     end
 
     function ShoppingMartClass:UpdateItemDisplay()
-        if not self.gui then
-            return
-        end
+        if not self.gui then return end
 
         local itemsScrollFrame = self.gui.MainFrame.ContentFrame.LeftPanel.ItemsScrollFrame
 
         for _, child in ipairs(itemsScrollFrame:GetChildren()) do
-            if child:IsA("Frame") then
-                child:Destroy()
-            end
+            if child:IsA("Frame") then child:Destroy() end
         end
 
         local catalog = ItemCatalog.Build()
@@ -7590,22 +7591,18 @@ local ShoppingMart = (function()
     end
 
     function ShoppingMartClass:ProcessCheckout(button)
-        if self.buying or #self.shoppingCart == 0 then
-            return
-        end
+        if self.buying or #self.shoppingCart == 0 then return end
 
         self.buying = true
 
-        button.Text = "Processing..."
-        button.BackgroundColor3 = Theme.AccentDark
+        button.Text = "NGITUNG..."
+        button.BackgroundColor3 = Theme.SurfaceAlt
 
         for _, cartItem in ipairs(self.shoppingCart) do
             for i = 1, cartItem.quantity do
                 if cartItem.shopItem then
                     local remote = ReplicatedStorage.Remotes.Shop.BuyItem
-                    pcall(function()
-                        remote:InvokeServer(cartItem.shopItem)
-                    end)
+                    pcall(function() remote:InvokeServer(cartItem.shopItem) end)
                     task.wait(0.1)
                 end
             end
@@ -7614,19 +7611,17 @@ local ShoppingMart = (function()
         self:ClearCart()
         self:UpdateCart()
 
-        button.Text = "Completed"
+        button.Text = "LUNAS NGAB!"
         button.BackgroundColor3 = Theme.Success
         task.wait(1.5)
-        button.Text = "Checkout"
-        button.BackgroundColor3 = Theme.Accent
+        button.Text = "BAYAR KE MANDOR"
+        button.BackgroundColor3 = Theme.AccentDark
 
         self.buying = false
     end
 
     function ShoppingMartClass:Toggle()
-        if self.gui then
-            self.gui.Enabled = not self.gui.Enabled
-        end
+        if self.gui then self.gui.Enabled = not self.gui.Enabled end
     end
 
     function ShoppingMartClass:Show()
@@ -7642,6 +7637,7 @@ local ShoppingMart = (function()
             self.inputBlocker.Visible = false
         end
     end
+
     return ShoppingMartClass
 end)()
 
