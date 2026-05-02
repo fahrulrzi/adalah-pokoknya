@@ -12130,8 +12130,22 @@ local function initializeMainTab()
             -- 🔥 3. SATPAM AUTO-KICK KALO WAKTU ABIS 🔥
             if sisaWaktu == "Expired" then
                 getgenv().KuliJawa_KeySystem.IsVerified = false
-                game.Players.LocalPlayer:Kick("❌ Time's up! Please renew your key to continue using KuliJawa Maker.")
-                break -- Berhentiin loop-nya
+                
+                pcall(function() 
+                    game:GetService("StarterGui"):SetCore("SendNotification", {
+                        Title = "Waktu Habis!", 
+                        Text = "Sewa Kuli Jawa lu udah abis ngab. Auto-farm dimatikan.", 
+                        Duration = 10
+                    }) 
+                end)
+
+                -- Hancurkan UI Kuli Jawa biar ga bisa dipencet lagi
+                -- (Asumsi lu punya variabel atau fungsi buat nge-destroy UI utama lu)
+                if getgenv().KuliJawa_MainUI then 
+                    getgenv().KuliJawa_MainUI:Destroy() 
+                end
+
+                break -- Berhentiin loop update UI-nya
             end
 
             ProfileInfo:SetFields({
