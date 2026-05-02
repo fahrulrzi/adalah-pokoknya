@@ -120,7 +120,7 @@ end
 
 local SimpleUI = {}
 
-SimpleUI.Version = "1.6.2"
+SimpleUI.Version = "1.0.0"
 SimpleUI.Loaded = SimpleUI.Loaded or {}
 SimpleUI.Windows = SimpleUI.Windows or {}
 

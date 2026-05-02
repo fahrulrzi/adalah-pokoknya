@@ -51,22 +51,29 @@ local function CheckSavedKey()
                     local userTier = data.tier or "Free (12H)"
                     
                     local expTime = 0
-                    if data.expiry ~= "Permanent" then
-                        -- Gunakan DateTime Roblox buat parsing otomatis dari Database
-                        local dt = DateTime.fromIsoDate(data.expiry)
-                        
-                        -- Kalau gagal baca IsoDate, kita coba baca dari UniversalTime
-                        if not dt then
-                            dt = DateTime.fromUniversalTime(data.expiry)
-                        end
+                    local expString = tostring(data.expiry)
+
+                    if expString == "Permanent" then
+                        expTime = os.time() + 999999999 -- Angka gaban biar ga abis-abis
+                    else
+                        -- 1. Coba pake DateTime Roblox
+                        local dt = DateTime.fromIsoDate(expString)
                         
                         if dt then
-                            -- Ambil detik murninya (Unix Timestamp)
                             expTime = dt.UnixTimestamp
                         else
-                            -- Fallback darurat kalo format API aneh (tambah 12 jam dari sekarang)
-                            expTime = os.time() + (12 * 3600)
-                            warn("Gagal parse tanggal dari DB, pakai waktu lokal.")
+                            -- 2. Coba pake manual (jaga-jaga API lu ngirim spasi bukan huruf T)
+                            local y, m, d, h, min, s = expString:match("(%d+)-(%d+)-(%d+)[T%s](%d+):(%d+):(%d+)")
+                            if y then 
+                                expTime = os.time({year=y, month=m, day=d, hour=h, min=min, sec=s}) 
+                            end
+                        end
+                        
+                        -- 🔥 3. JARING PENGAMAN (ANTI EXPIRED INSTAN) 🔥
+                        -- Kalau hasil expTime gagal (jadi 0) atau waktunya di masa lalu
+                        if expTime <= os.time() then
+                            warn("⚠️ Format waktu dari DB gagal dibaca! Memaksa set 12 Jam.")
+                            expTime = os.time() + (12 * 3600) -- Paksa 12 jam murni dari waktu lokal!
                         end
                     end
 
@@ -309,22 +316,29 @@ VerifyBtn.MouseButton1Click:Connect(function()
                 -- 🔥 1. BIKIN GLOBAL KEY SYSTEM BUAT SCRIPT UTAMA 🔥
                 -- ========================================================
                 local expTime = 0
-                    if data.expiry ~= "Permanent" then
-                        -- Gunakan DateTime Roblox buat parsing otomatis dari Database
-                        local dt = DateTime.fromIsoDate(data.expiry)
-                        
-                        -- Kalau gagal baca IsoDate, kita coba baca dari UniversalTime
-                        if not dt then
-                            dt = DateTime.fromUniversalTime(data.expiry)
-                        end
+                    local expString = tostring(data.expiry)
+
+                    if expString == "Permanent" then
+                        expTime = os.time() + 999999999 -- Angka gaban biar ga abis-abis
+                    else
+                        -- 1. Coba pake DateTime Roblox
+                        local dt = DateTime.fromIsoDate(expString)
                         
                         if dt then
-                            -- Ambil detik murninya (Unix Timestamp)
                             expTime = dt.UnixTimestamp
                         else
-                            -- Fallback darurat kalo format API aneh (tambah 12 jam dari sekarang)
-                            expTime = os.time() + (12 * 3600)
-                            warn("Gagal parse tanggal dari DB, pakai waktu lokal.")
+                            -- 2. Coba pake manual (jaga-jaga API lu ngirim spasi bukan huruf T)
+                            local y, m, d, h, min, s = expString:match("(%d+)-(%d+)-(%d+)[T%s](%d+):(%d+):(%d+)")
+                            if y then 
+                                expTime = os.time({year=y, month=m, day=d, hour=h, min=min, sec=s}) 
+                            end
+                        end
+                        
+                        -- 🔥 3. JARING PENGAMAN (ANTI EXPIRED INSTAN) 🔥
+                        -- Kalau hasil expTime gagal (jadi 0) atau waktunya di masa lalu
+                        if expTime <= os.time() then
+                            warn("⚠️ Format waktu dari DB gagal dibaca! Memaksa set 12 Jam.")
+                            expTime = os.time() + (12 * 3600) -- Paksa 12 jam murni dari waktu lokal!
                         end
                     end
 
