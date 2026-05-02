@@ -12127,25 +12127,37 @@ local function initializeMainTab()
             -- 2. Ambil sisa waktu dari memori
             local sisaWaktu = KeySystem.GetTimeLeft()
 
-            -- 🔥 3. SATPAM AUTO-KICK KALO WAKTU ABIS 🔥
+            -- 🔥 3. SATPAM ELEGAN (RELOAD SYSTEM) 🔥
             if sisaWaktu == "Expired" then
+                -- 1. Matikan gembok verifikasi & Auto-Farm
                 getgenv().KuliJawa_KeySystem.IsVerified = false
-                
+                _G.KuliJawa_IsFarming = false -- (Wajib: Tambahin variabel global ini di dalem loop auto-farm lu biar berenti)
+
+                -- 2. Hapus file Saved Key biar auto-login gagal pas direload
+                if isfile and delfile and isfile("KuliJawa_SavedKey.txt") then
+                    delfile("KuliJawa_SavedKey.txt")
+                end
+
+                -- 3. Notifikasi santuy
                 pcall(function() 
                     game:GetService("StarterGui"):SetCore("SendNotification", {
-                        Title = "Waktu Habis!", 
-                        Text = "Sewa Kuli Jawa lu udah abis ngab. Auto-farm dimatikan.", 
-                        Duration = 10
+                        Title = "Waktu Kuli Habis!", 
+                        Text = "Sewa lu udah selesai. Silakan verify key baru.", 
+                        Duration = 5
                     }) 
                 end)
 
-                -- Hancurkan UI Kuli Jawa biar ga bisa dipencet lagi
-                -- (Asumsi lu punya variabel atau fungsi buat nge-destroy UI utama lu)
+                -- 4. HANCURKAN UI DASHBOARD
+                -- (Pastiin lu nge-destroy variabel yang nyimpen ScreenGui UI Utama lu)
                 if getgenv().KuliJawa_MainUI then 
                     getgenv().KuliJawa_MainUI:Destroy() 
                 end
 
-                break -- Berhentiin loop update UI-nya
+                -- 5. LOAD ULANG SCRIPT LOADER/LOGIN UI LU!
+                task.wait(1)
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/KuliJawa-Maker/ojis/refs/heads/main/main.lua"))()
+
+                break -- Berhentiin loop text UI
             end
 
             ProfileInfo:SetFields({

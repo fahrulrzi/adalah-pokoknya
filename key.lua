@@ -51,29 +51,15 @@ local function CheckSavedKey()
                     local userTier = data.tier or "Free (12H)"
                     
                     local expTime = 0
-                    local expString = tostring(data.expiry)
 
-                    if expString == "Permanent" then
-                        expTime = os.time() + 999999999 -- Angka gaban biar ga abis-abis
+                    if data.expiry == "Permanent" then
+                        expTime = os.time() + 315360000 -- 10 Tahun (Mewakili permanen)
                     else
-                        -- 1. Coba pake DateTime Roblox
-                        local dt = DateTime.fromIsoDate(expString)
-                        
+                        local dt = DateTime.fromIsoDate(data.expiry)
                         if dt then
                             expTime = dt.UnixTimestamp
                         else
-                            -- 2. Coba pake manual (jaga-jaga API lu ngirim spasi bukan huruf T)
-                            local y, m, d, h, min, s = expString:match("(%d+)-(%d+)-(%d+)[T%s](%d+):(%d+):(%d+)")
-                            if y then 
-                                expTime = os.time({year=y, month=m, day=d, hour=h, min=min, sec=s}) 
-                            end
-                        end
-                        
-                        -- 🔥 3. JARING PENGAMAN (ANTI EXPIRED INSTAN) 🔥
-                        -- Kalau hasil expTime gagal (jadi 0) atau waktunya di masa lalu
-                        if expTime <= os.time() then
-                            warn("⚠️ Format waktu dari DB gagal dibaca! Memaksa set 12 Jam.")
-                            expTime = os.time() + (12 * 3600) -- Paksa 12 jam murni dari waktu lokal!
+                            warn("Format API tidak beraturan: " .. tostring(data.expiry))
                         end
                     end
 
@@ -290,7 +276,7 @@ GetFreeBtn.MouseButton1Click:Connect(function() CopyLink(LinkFree12H, "Free 12H"
 -- GetPermBtn.MouseButton1Click:Connect(function() CopyLink(LinkPremPerm, "Premium Permanent") end)
 
 VerifyBtn.MouseButton1Click:Connect(function()
-    local inputKey = KeyInput.Text
+    localinputKey = KeyInput.Text
     if inputKey == "" then return end
     
     VerifyBtn.Text = "Checking..."
@@ -311,57 +297,39 @@ VerifyBtn.MouseButton1Click:Connect(function()
                 end
                 
                 local userTier = data.tier or "Free (12H)"
-                
-                -- ========================================================
-                -- 🔥 1. BIKIN GLOBAL KEY SYSTEM BUAT SCRIPT UTAMA 🔥
-                -- ========================================================
-                local expTime = 0
-                    local expString = tostring(data.expiry)
+                    local expTime = 0
 
-                    if expString == "Permanent" then
-                        expTime = os.time() + 999999999 -- Angka gaban biar ga abis-abis
+                    if data.expiry == "Permanent" then
+                        expTime = os.time() + 315360000 -- 10 Tahun (Mewakili permanen)
                     else
-                        -- 1. Coba pake DateTime Roblox
-                        local dt = DateTime.fromIsoDate(expString)
-                        
+                        -- Ini akan otomatis menyesuaikan zona waktu UTC ke Lokal!
+                        local dt = DateTime.fromIsoDate(data.expiry)
                         if dt then
                             expTime = dt.UnixTimestamp
                         else
-                            -- 2. Coba pake manual (jaga-jaga API lu ngirim spasi bukan huruf T)
-                            local y, m, d, h, min, s = expString:match("(%d+)-(%d+)-(%d+)[T%s](%d+):(%d+):(%d+)")
-                            if y then 
-                                expTime = os.time({year=y, month=m, day=d, hour=h, min=min, sec=s}) 
-                            end
-                        end
-                        
-                        -- 🔥 3. JARING PENGAMAN (ANTI EXPIRED INSTAN) 🔥
-                        -- Kalau hasil expTime gagal (jadi 0) atau waktunya di masa lalu
-                        if expTime <= os.time() then
-                            warn("⚠️ Format waktu dari DB gagal dibaca! Memaksa set 12 Jam.")
-                            expTime = os.time() + (12 * 3600) -- Paksa 12 jam murni dari waktu lokal!
+                            warn("Format API tidak beraturan: " .. tostring(data.expiry))
                         end
                     end
 
-                getgenv().KuliJawa_KeySystem = {
-                    IsVerified = true,
-                    KeyString = inputKey,
-                    Tier = userTier,
-                    ExpiryTime = expTime,
-                    Duration = (data.expiry == "Permanent") and "Lifetime" or "Limited",
-                    
-                    -- Fungsi sakti buat ngitung sisa waktu di UI Utama
-                    GetTimeLeft = function()
-                        local ks = getgenv().KuliJawa_KeySystem
-                        if ks.Duration == "Lifetime" then return "Permanent" end
+                    getgenv().KuliJawa_KeySystem = {
+                        IsVerified = true,
+                        KeyString = inputKey, -- (Atau savedKey kalau di Auto-Login)
+                        Tier = userTier,
+                        ExpiryTime = expTime,
+                        Duration = (data.expiry == "Permanent") and "Lifetime" or "Limited",
                         
-                        local sisa = ks.ExpiryTime - os.time()
-                        if sisa <= 0 then return "Expired" end
-                        
-                        local rHours = math.floor(sisa / 3600)
-                        local rMins = math.floor((sisa % 3600) / 60)
-                        return string.format("%02dh %02dm", rHours, rMins)
-                    end
-                }
+                        GetTimeLeft = function()
+                            local ks = getgenv().KuliJawa_KeySystem
+                            if ks.Duration == "Lifetime" then return "Permanent" end
+                            
+                            local sisa = ks.ExpiryTime - os.time()
+                            if sisa <= 0 then return "Expired" end
+                            
+                            local rHours = math.floor(sisa / 3600)
+                            local rMins = math.floor((sisa % 3600) / 60)
+                            return string.format("%02dh %02dm", rHours, rMins)
+                        end
+                    }
 
                 -- ========================================================
                 -- 🔥 2. JALANIN HEARTBEAT PING DI BACKGROUND 🔥
