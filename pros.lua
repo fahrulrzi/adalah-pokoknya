@@ -14,7 +14,7 @@ local requestFunc = syn and syn.request or http and http.request or request or f
 -- ==========================================
 -- 🔑 KEY SYSTEM MODULE
 -- ==========================================
-local KeySystem = {
+local KeySystem = getgenv().KuliJawa_KeySystem or {
     IsVerified = false,
     KeyString = "",
     Tier = "None",        -- Nanti isinya: "Free" atau "Premium"
@@ -13556,31 +13556,3 @@ initializeFeedbackTab()
 if SimpleUI.Utility:IsMobile() then
     MobileUIModule.createToggleButton(window, true)
 end
-
-task.spawn(function()
-    while true do
-        task.wait(60)
-        
-        local success, res = pcall(function()
-            return request({
-                Url = "https://key-system-telur.vercel.app/api/ping",
-                Method = "POST",
-                Headers = {["Content-Type"] = "application/json"},
-                Body = game:GetService("HttpService"):JSONEncode({
-                    key = _G.UserKey,
-                    hwid = game:GetService("RbxAnalyticsService"):GetClientId()
-                })
-            })
-        end)
-
-        if success and res.StatusCode == 200 then
-            local data = game:GetService("HttpService"):JSONDecode(res.Body)
-            if data.action == "KICK" then
-                game.Players.LocalPlayer:Kick("❌ Session lu diambil alih atau Expired!")
-            end
-        else
-
-            warn("Ping ke server gagal...")
-        end
-    end
-end)
