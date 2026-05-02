@@ -52,8 +52,22 @@ local function CheckSavedKey()
                     
                     local expTime = 0
                     if data.expiry ~= "Permanent" then
-                        local y, m, d, h, min, s = data.expiry:match("(%d+)-(%d+)-(%d+)T(%d+):(%d+):(%d+)")
-                        if y then expTime = os.time({year=y, month=m, day=d, hour=h, min=min, sec=s}) end
+                        -- Gunakan DateTime Roblox buat parsing otomatis dari Database
+                        local dt = DateTime.fromIsoDate(data.expiry)
+                        
+                        -- Kalau gagal baca IsoDate, kita coba baca dari UniversalTime
+                        if not dt then
+                            dt = DateTime.fromUniversalTime(data.expiry)
+                        end
+                        
+                        if dt then
+                            -- Ambil detik murninya (Unix Timestamp)
+                            expTime = dt.UnixTimestamp
+                        else
+                            -- Fallback darurat kalo format API aneh (tambah 12 jam dari sekarang)
+                            expTime = os.time() + (12 * 3600)
+                            warn("Gagal parse tanggal dari DB, pakai waktu lokal.")
+                        end
                     end
 
                     -- Bikin Global Key System
@@ -295,11 +309,24 @@ VerifyBtn.MouseButton1Click:Connect(function()
                 -- 🔥 1. BIKIN GLOBAL KEY SYSTEM BUAT SCRIPT UTAMA 🔥
                 -- ========================================================
                 local expTime = 0
-                if data.expiry ~= "Permanent" then
-                    -- Supabase ngirim waktu format ISO (2026-04-27T12:00:00Z), kita ubah ke detik (Unix Timestamp)
-                    local y, m, d, h, min, s = data.expiry:match("(%d+)-(%d+)-(%d+)T(%d+):(%d+):(%d+)")
-                    if y then expTime = os.time({year=y, month=m, day=d, hour=h, min=min, sec=s}) end
-                end
+                    if data.expiry ~= "Permanent" then
+                        -- Gunakan DateTime Roblox buat parsing otomatis dari Database
+                        local dt = DateTime.fromIsoDate(data.expiry)
+                        
+                        -- Kalau gagal baca IsoDate, kita coba baca dari UniversalTime
+                        if not dt then
+                            dt = DateTime.fromUniversalTime(data.expiry)
+                        end
+                        
+                        if dt then
+                            -- Ambil detik murninya (Unix Timestamp)
+                            expTime = dt.UnixTimestamp
+                        else
+                            -- Fallback darurat kalo format API aneh (tambah 12 jam dari sekarang)
+                            expTime = os.time() + (12 * 3600)
+                            warn("Gagal parse tanggal dari DB, pakai waktu lokal.")
+                        end
+                    end
 
                 getgenv().KuliJawa_KeySystem = {
                     IsVerified = true,
