@@ -50,23 +50,35 @@ local function CheckSavedKey()
                 if bodySuccess and data and data.success == true then
                     local userTier = data.tier or "Free (12H)"
                     
+                    -- ========================================================
+                    -- 🔥 1. PARSING WAKTU + LOG DEBUGGING 🔥
+                    -- ========================================================
                     local expTime = 0
 
                     if data.expiry == "Permanent" then
-                        expTime = os.time() + 315360000 -- 10 Tahun (Mewakili permanen)
+                        expTime = os.time() + 315360000 -- 10 Tahun
                     else
                         local dt = DateTime.fromIsoDate(data.expiry)
                         if dt then
                             expTime = dt.UnixTimestamp
                         else
-                            warn("Format API tidak beraturan: " .. tostring(data.expiry))
+                            warn("⚠️ [KULI JAWA] Gagal parsing ISO Date: " .. tostring(data.expiry))
                         end
                     end
+
+                    -- Bikin Log buat kita nge-trace bug-nya
+                    print("====================================")
+                    print("🛠️ DEBUG WAKTU KULI JAWA 🛠️")
+                    print("Raw Waktu dari API:", tostring(data.expiry))
+                    print("Current OS Time   :", os.time())
+                    print("Parsed Expiry Time:", expTime)
+                    print("Sisa Detik        :", expTime - os.time())
+                    print("====================================")
 
                     -- Bikin Global Key System
                     getgenv().KuliJawa_KeySystem = {
                         IsVerified = true,
-                        KeyString = savedKey,
+                        KeyString = savedKey, -- (Atau inputKey kalau di tombol Verify)
                         Tier = userTier,
                         ExpiryTime = expTime,
                         Duration = (data.expiry == "Permanent") and "Lifetime" or "Limited",
@@ -81,7 +93,9 @@ local function CheckSavedKey()
                         end
                     }
 
-                    -- Jalanin Heartbeat di Background
+                    -- ========================================================
+                    -- 🔥 2. HEARTBEAT TANPA KICK (RELOAD SYSTEM) 🔥
+                    -- ========================================================
                     task.spawn(function()
                         while getgenv().KuliJawa_KeySystem.IsVerified do
                             task.wait(60)
@@ -90,13 +104,37 @@ local function CheckSavedKey()
                                     Url = "https://key-system-telur.vercel.app/api/ping",
                                     Method = "POST",
                                     Headers = {["Content-Type"] = "application/json"},
-                                    Body = HttpService:JSONEncode({key = savedKey, hwid = myHwid})
+                                    Body = HttpService:JSONEncode({key = savedKey, hwid = myHwid}) -- (Ubah savedKey jadi inputKey kalo di tombol Verify)
                                 })
                                 local pingData = HttpService:JSONDecode(pingRes.Body)
+                                
+                                -- Kalo server API merintahkan KICK (Key dipakai di device lain / expired di DB)
                                 if pingData and pingData.action == "KICK" then
                                     getgenv().KuliJawa_KeySystem.IsVerified = false
-                                    game.Players.LocalPlayer:Kick("❌ Session lu diambil alih atau Key Expired!")
-                                    if delfile then delfile(KeyFileName) end -- Hapus file kalo ke-kick
+                                    _G.KuliJawa_IsFarming = false -- Matiin fitur auto-farm lu
+                                    
+                                    -- Hapus file saved key biar dia bisa verify ulang
+                                    if delfile and isfile(KeyFileName) then 
+                                        delfile(KeyFileName) 
+                                    end 
+                                    
+                                    -- Munculin Notif Santuy
+                                    pcall(function() 
+                                        game:GetService("StarterGui"):SetCore("SendNotification", {
+                                            Title = "Sesi Berakhir", 
+                                            Text = "Key expired atau dipakai di device lain!", 
+                                            Duration = 5
+                                        }) 
+                                    end)
+                                    
+                                    -- Hancurin UI Utama (Pastiin variabel ini bener sesuai di pros.lua lu)
+                                    if getgenv().KuliJawa_MainUI then 
+                                        getgenv().KuliJawa_MainUI:Destroy() 
+                                    end
+                                    
+                                    task.wait(1)
+                                    -- Load UI Login lagi
+                                    loadstring(game:HttpGet("https://raw.githubusercontent.com/KuliJawa-Maker/ojis/refs/heads/main/main.lua"))()
                                 end
                             end)
                         end
@@ -297,61 +335,95 @@ VerifyBtn.MouseButton1Click:Connect(function()
                 end
                 
                 local userTier = data.tier or "Free (12H)"
+                -- ========================================================
+                    -- 🔥 1. PARSING WAKTU + LOG DEBUGGING 🔥
+                    -- ========================================================
                     local expTime = 0
 
                     if data.expiry == "Permanent" then
-                        expTime = os.time() + 315360000 -- 10 Tahun (Mewakili permanen)
+                        expTime = os.time() + 315360000 -- 10 Tahun
                     else
-                        -- Ini akan otomatis menyesuaikan zona waktu UTC ke Lokal!
                         local dt = DateTime.fromIsoDate(data.expiry)
                         if dt then
                             expTime = dt.UnixTimestamp
                         else
-                            warn("Format API tidak beraturan: " .. tostring(data.expiry))
+                            warn("⚠️ [KULI JAWA] Gagal parsing ISO Date: " .. tostring(data.expiry))
                         end
                     end
 
+                    -- Bikin Log buat kita nge-trace bug-nya
+                    print("====================================")
+                    print("🛠️ DEBUG WAKTU KULI JAWA 🛠️")
+                    print("Raw Waktu dari API:", tostring(data.expiry))
+                    print("Current OS Time   :", os.time())
+                    print("Parsed Expiry Time:", expTime)
+                    print("Sisa Detik        :", expTime - os.time())
+                    print("====================================")
+
+                    -- Bikin Global Key System
                     getgenv().KuliJawa_KeySystem = {
                         IsVerified = true,
-                        KeyString = inputKey, -- (Atau savedKey kalau di Auto-Login)
+                        KeyString = savedKey, -- (Atau inputKey kalau di tombol Verify)
                         Tier = userTier,
                         ExpiryTime = expTime,
                         Duration = (data.expiry == "Permanent") and "Lifetime" or "Limited",
-                        
                         GetTimeLeft = function()
                             local ks = getgenv().KuliJawa_KeySystem
                             if ks.Duration == "Lifetime" then return "Permanent" end
-                            
                             local sisa = ks.ExpiryTime - os.time()
                             if sisa <= 0 then return "Expired" end
-                            
                             local rHours = math.floor(sisa / 3600)
                             local rMins = math.floor((sisa % 3600) / 60)
                             return string.format("%02dh %02dm", rHours, rMins)
                         end
                     }
 
-                -- ========================================================
-                -- 🔥 2. JALANIN HEARTBEAT PING DI BACKGROUND 🔥
-                -- ========================================================
-                task.spawn(function()
-                    while getgenv().KuliJawa_KeySystem.IsVerified do
-                        task.wait(60) -- Ping tiap 60 detik
-                        pcall(function()
-                            local pingRes = httprequest({
-                                Url = "https://key-system-telur.vercel.app/api/ping",
-                                Method = "POST",
-                                Headers = {["Content-Type"] = "application/json"},
-                                Body = HttpService:JSONEncode({key = inputKey, hwid = myHwid})
-                            })
-                            local pingData = HttpService:JSONDecode(pingRes.Body)
-                            if pingData and pingData.action == "KICK" then
-                                getgenv().KuliJawa_KeySystem.IsVerified = false
-                                game.Players.LocalPlayer:Kick("❌ Session lu diambil alih di Device lain atau Key Expired!")
-                            end
-                        end)
-                    end
-                end)
+                    -- ========================================================
+                    -- 🔥 2. HEARTBEAT TANPA KICK (RELOAD SYSTEM) 🔥
+                    -- ========================================================
+                    task.spawn(function()
+                        while getgenv().KuliJawa_KeySystem.IsVerified do
+                            task.wait(60)
+                            pcall(function()
+                                local pingRes = httprequest({
+                                    Url = "https://key-system-telur.vercel.app/api/ping",
+                                    Method = "POST",
+                                    Headers = {["Content-Type"] = "application/json"},
+                                    Body = HttpService:JSONEncode({key = savedKey, hwid = myHwid}) -- (Ubah savedKey jadi inputKey kalo di tombol Verify)
+                                })
+                                local pingData = HttpService:JSONDecode(pingRes.Body)
+                                
+                                -- Kalo server API merintahkan KICK (Key dipakai di device lain / expired di DB)
+                                if pingData and pingData.action == "KICK" then
+                                    getgenv().KuliJawa_KeySystem.IsVerified = false
+                                    _G.KuliJawa_IsFarming = false -- Matiin fitur auto-farm lu
+                                    
+                                    -- Hapus file saved key biar dia bisa verify ulang
+                                    if delfile and isfile(KeyFileName) then 
+                                        delfile(KeyFileName) 
+                                    end 
+                                    
+                                    -- Munculin Notif Santuy
+                                    pcall(function() 
+                                        game:GetService("StarterGui"):SetCore("SendNotification", {
+                                            Title = "Sesi Berakhir", 
+                                            Text = "Key expired atau dipakai di device lain!", 
+                                            Duration = 5
+                                        }) 
+                                    end)
+                                    
+                                    -- Hancurin UI Utama (Pastiin variabel ini bener sesuai di pros.lua lu)
+                                    if getgenv().KuliJawa_MainUI then 
+                                        getgenv().KuliJawa_MainUI:Destroy() 
+                                    end
+                                    
+                                    task.wait(1)
+                                    -- Load UI Login lagi
+                                    loadstring(game:HttpGet("https://raw.githubusercontent.com/KuliJawa-Maker/ojis/refs/heads/main/main.lua"))()
+                                end
+                            end)
+                        end
+                    end)
                 
                 -- ========================================================
                 -- 🔥 3. LOAD MAIN SCRIPT 🔥
