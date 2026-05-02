@@ -12118,17 +12118,29 @@ local function initializeMainTab()
 
     task.spawn(function()
         while task.wait(1) do
+            -- 1. Hitung Session Time
             local elapsed = os.time() - sessionStart
             local eHours = math.floor(elapsed / 3600)
             local eMins = math.floor((elapsed % 3600) / 60)
             local eSecs = elapsed % 60
             local sessionString = string.format("%02d:%02d:%02d", eHours, eMins, eSecs)
 
+            -- 2. Ambil sisa waktu dari memori
+            local sisaWaktu = KeySystem.GetTimeLeft()
+
+            -- 🔥 3. SATPAM AUTO-KICK KALO WAKTU ABIS 🔥
+            if sisaWaktu == "Expired" then
+                getgenv().KuliJawa_KeySystem.IsVerified = false
+                game.Players.LocalPlayer:Kick("❌ Waktu sewa Kuli Jawa lu udah abis ngab! Silakan perpanjang Key di toko.")
+                break -- Berhentiin loop-nya
+            end
+
+            -- 4. Update UI Dashboard
             ProfileInfo:SetFields({
                 "👤 Name: " .. Player.DisplayName .. " (@" .. Player.Name .. ")",
                 "🔑 License: " .. KeySystem.Tier,
                 "⏱️ Session Time: " .. sessionString,
-                "⏳ Key Expires In: " .. KeySystem.GetTimeLeft() -- Manggil dari object lu!
+                "⏳ Key Expires In: " .. sisaWaktu
             })
         end
     end)
