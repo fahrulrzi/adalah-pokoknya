@@ -30,6 +30,95 @@ local function getHWID()
 end
 local myHwid = getHWID()
 local httprequest = (syn and syn.request) or (http and http.request) or http_request or (fluxus and fluxus.request) or request
+local KeyFileName = "KuliJawa_SavedKey.txt"
+
+local function CheckSavedKey()
+    -- Cek apakah eksekutor support file system dan filenya ada
+    if isfile and readfile and isfile(KeyFileName) then
+        local savedKey = readfile(KeyFileName)
+        
+        if savedKey and savedKey ~= "" then
+            print("Mencoba Auto-Login dengan Saved Key...")
+            
+            -- Tembak API diem-diem
+            local success, res = pcall(function() return httprequest({Url = WebAPI .. "?key=" .. savedKey .. "&hwid=" .. myHwid, Method = "GET"}) end)
+            
+            if success and res then
+                local bodySuccess, data = pcall(function() return HttpService:JSONDecode(res.Body) end)
+                
+                -- Kalo key di file masih aktif dan valid
+                if bodySuccess and data and data.success == true then
+                    local userTier = data.tier or "Free (12H)"
+                    
+                    local expTime = 0
+                    if data.expiry ~= "Permanent" then
+                        local y, m, d, h, min, s = data.expiry:match("(%d+)-(%d+)-(%d+)T(%d+):(%d+):(%d+)")
+                        if y then expTime = os.time({year=y, month=m, day=d, hour=h, min=min, sec=s}) end
+                    end
+
+                    -- Bikin Global Key System
+                    getgenv().KuliJawa_KeySystem = {
+                        IsVerified = true,
+                        KeyString = savedKey,
+                        Tier = userTier,
+                        ExpiryTime = expTime,
+                        Duration = (data.expiry == "Permanent") and "Lifetime" or "Limited",
+                        GetTimeLeft = function()
+                            local ks = getgenv().KuliJawa_KeySystem
+                            if ks.Duration == "Lifetime" then return "Permanent" end
+                            local sisa = ks.ExpiryTime - os.time()
+                            if sisa <= 0 then return "Expired" end
+                            local rHours = math.floor(sisa / 3600)
+                            local rMins = math.floor((sisa % 3600) / 60)
+                            return string.format("%02dh %02dm", rHours, rMins)
+                        end
+                    }
+
+                    -- Jalanin Heartbeat di Background
+                    task.spawn(function()
+                        while getgenv().KuliJawa_KeySystem.IsVerified do
+                            task.wait(60)
+                            pcall(function()
+                                local pingRes = httprequest({
+                                    Url = "https://key-system-telur.vercel.app/api/ping",
+                                    Method = "POST",
+                                    Headers = {["Content-Type"] = "application/json"},
+                                    Body = HttpService:JSONEncode({key = savedKey, hwid = myHwid})
+                                })
+                                local pingData = HttpService:JSONDecode(pingRes.Body)
+                                if pingData and pingData.action == "KICK" then
+                                    getgenv().KuliJawa_KeySystem.IsVerified = false
+                                    game.Players.LocalPlayer:Kick("❌ Session lu diambil alih atau Key Expired!")
+                                    if delfile then delfile(KeyFileName) end -- Hapus file kalo ke-kick
+                                end
+                            end)
+                        end
+                    end)
+                    
+                    pcall(function() game:GetService("StarterGui"):SetCore("SendNotification", {Title = "Auto Login Success", Text = "Welcome back! Tier: " .. userTier, Duration = 5}) end)
+                    
+                    -- Langsung Panggil Script Utama
+                    _G.AuthToken_EggHunter = "KuliJawa_M4nt4p_2026"
+                    loadstring(game:HttpGet("https://raw.githubusercontent.com/fahrulrzi/adalah-pokoknya/refs/heads/main/pros.lua"))()
+                    _G.AuthToken_EggHunter = nil
+                    
+                    return true -- Ngabarin kalo Auto-Login Sukses
+                else
+                    -- Kalo Key expired atau gagal, hapus filenya biar user disuruh masukin manual lagi
+                    if delfile then delfile(KeyFileName) end
+                end
+            end
+        end
+    end
+    return false -- Kalo file ga ada atau gagal, return false
+end
+
+-- ========================================================
+-- 🔥 EKSEKUSI AUTO LOGIN SEBELUM MUNCULIN UI 🔥
+-- ========================================================
+if CheckSavedKey() then
+    return -- STOP SCRIPT DI SINI! Ga usah nampilin UI Login ke layar
+end
 
 -- 3. UI LOGIN ANTI CRASH
 local ScreenGui = Instance.new("ScreenGui")
@@ -194,6 +283,11 @@ VerifyBtn.MouseButton1Click:Connect(function()
             if bodySuccess and data and data.success == true then
                 VerifyBtn.Text = "SUCCESS!"
                 VerifyBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+
+                -- Simpen Key ke file biar besok-besok auto login
+                if writefile then
+                    writefile(KeyFileName, inputKey)
+                end
                 
                 local userTier = data.tier or "Free (12H)"
                 
