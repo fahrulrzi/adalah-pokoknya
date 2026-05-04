@@ -11712,20 +11712,19 @@ do
                 if not map then
                     TreasureHunter.UpdateStatus("Status: Waiting for Maps...")
                     task.wait(1)
-                    continue
-                end
-
-                TreasureHunter.UpdateStatus("Status: Found Map!")
-                
-                local success = TreasureHunter.huntSingleMap(map)
-
-                if success then
-                    TreasureHunter.mapsCompleted = TreasureHunter.mapsCompleted + 1
-                    TreasureHunter.UpdateStatus("Status: Map Completed!")
-                    task.wait(1.5) 
                 else
-                    TreasureHunter.UpdateStatus("Status: Retrying...")
-                    task.wait(2)
+                    TreasureHunter.UpdateStatus("Status: Found Map!")
+                    
+                    local success = TreasureHunter.huntSingleMap(map)
+    
+                    if success then
+                        TreasureHunter.mapsCompleted = TreasureHunter.mapsCompleted + 1
+                        TreasureHunter.UpdateStatus("Status: Map Completed!")
+                        task.wait(1.5) 
+                    else
+                        TreasureHunter.UpdateStatus("Status: Retrying...")
+                        task.wait(2)
+                    end
                 end
             end
             TreasureHunter.UpdateStatus("Status: Stopped")

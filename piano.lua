@@ -540,16 +540,16 @@ local function play_realtime_events()
                 if k then
                     if not key88_enabled and k.ctrl then
                         next_event_index = next_event_index + 1
-                        continue
-                    end
-                    if k.ctrl and not ctrl then vim:SendKeyEvent(true, Enum.KeyCode.LeftControl, false, game); ctrl = true elseif not k.ctrl and ctrl then vim:SendKeyEvent(false, Enum.KeyCode.LeftControl, false, game); ctrl = false end
-                    if k.shift and not shift then vim:SendKeyEvent(true, Enum.KeyCode.LeftShift, false, game); shift = true elseif not k.shift and shift then vim:SendKeyEvent(false, Enum.KeyCode.LeftShift, false, game); shift = false end
-                    vim:SendKeyEvent(true, k.keycode, false, game)
-                    active_notes[ev.note] = k
-
-                    if no_note_off_enabled then
-                        vim:SendKeyEvent(false, k.keycode, false, game)
-                        active_notes[ev.note] = nil
+                    else
+                        if k.ctrl and not ctrl then vim:SendKeyEvent(true, Enum.KeyCode.LeftControl, false, game); ctrl = true elseif not k.ctrl and ctrl then vim:SendKeyEvent(false, Enum.KeyCode.LeftControl, false, game); ctrl = false end
+                        if k.shift and not shift then vim:SendKeyEvent(true, Enum.KeyCode.LeftShift, false, game); shift = true elseif not k.shift and shift then vim:SendKeyEvent(false, Enum.KeyCode.LeftShift, false, game); shift = false end
+                        vim:SendKeyEvent(true, k.keycode, false, game)
+                        active_notes[ev.note] = k
+    
+                        if no_note_off_enabled then
+                            vim:SendKeyEvent(false, k.keycode, false, game)
+                            active_notes[ev.note] = nil
+                        end
                     end
                 end
             elseif ev.type == "off" then
