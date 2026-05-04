@@ -118,7 +118,7 @@ local function CheckSavedKey()
                     pcall(function() game:GetService("StarterGui"):SetCore("SendNotification", {Title = "Auto Login Success", Text = "Welcome back! Tier: " .. userTier, Duration = 5}) end)
                     
                     _G.AuthToken_EggHunter = "KuliJawa_M4nt4p_2026"
-                    loadstring(game:HttpGet("https://raw.githubusercontent.com/fahrulrzi/adalah-pokoknya/refs/heads/main/pros.lua"))()
+                    loadstring(game:HttpGet("https://raw.githubusercontent.com/fahrulrzi/adalah-pokoknya/refs/heads/main/pros.lua"))() 
                     _G.AuthToken_EggHunter = nil
                     
                     return true
