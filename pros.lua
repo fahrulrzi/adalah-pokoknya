@@ -8,21 +8,16 @@ _G.AuthToken_EggHunter = nil
 local HttpService = game:GetService("HttpService")
 local RbxAnalytics = game:GetService("RbxAnalyticsService")
 
--- Fungsi buat support semua jenis Executor (Delta, Codex, dll)
 local requestFunc = syn and syn.request or http and http.request or request or fluxus and fluxus.request
 
--- ==========================================
--- 🔑 KEY SYSTEM MODULE
--- ==========================================
 local KeySystem = getgenv().KuliJawa_KeySystem or {
     IsVerified = false,
     KeyString = "",
-    Tier = "None",        -- Nanti isinya: "Free" atau "Premium"
-    Duration = "None",    -- Nanti isinya: "24H", "30D", atau "Lifetime"
-    ExpiryTime = 0,       -- Unix timestamp matinya key
+    Tier = "None",
+    Duration = "None",
+    ExpiryTime = 0, 
     HWID = RbxAnalytics:GetClientId(),
     
-    -- Ganti pake URL API Next.js lu nanti
     API_URL = "https://kuli-jawa-key-api.vercel.app/api" 
 }
 
@@ -31,13 +26,11 @@ function KeySystem.Verify(inputKey)
         return false, "Executor ga support HTTP Request!"
     end
 
-    -- Hit API lu buat ngecek Key
     local success, response = pcall(function()
         return requestFunc({
             -- Pake tanda ? dan & buat masukin data ke URL
             Url = KeySystem.API_URL .. "/verify?key=" .. inputKey .. "&hwid=" .. KeySystem.HWID,
             Method = "GET", 
-            -- Kalo GET, ga perlu pake Headers Content-Type dan Body JSON
         })
     end)
 
@@ -45,14 +38,12 @@ function KeySystem.Verify(inputKey)
         local data = HttpService:JSONDecode(response.Body)
         
         if data.success then
-            -- Simpen data dari Database ke memori Script
             KeySystem.IsVerified = true
             KeySystem.KeyString = inputKey
-            KeySystem.Tier = data.tier           -- "Free" / "Premium"
-            KeySystem.Duration = data.duration   -- "24H" / "Lifetime"
-            KeySystem.ExpiryTime = data.expiry   -- Timestamp
+            KeySystem.Tier = data.tier
+            KeySystem.Duration = data.duration 
+            KeySystem.ExpiryTime = data.expiry  
             
-            -- Kalo lolos, langsung nyalain Master Loop Heartbeat
             KeySystem.StartHeartbeat()
             return true, "Success"
         else
@@ -66,7 +57,7 @@ end
 function KeySystem.StartHeartbeat()
     task.spawn(function()
         while KeySystem.IsVerified do
-            task.wait(60) -- Kirim ping tiap 60 detik
+            task.wait(60) 
 
             local success, response = pcall(function()
                 return requestFunc({
@@ -82,7 +73,6 @@ function KeySystem.StartHeartbeat()
 
             if success and response.StatusCode == 200 then
                 local data = HttpService:JSONDecode(response.Body)
-                -- Kalo API ngerespon HWID beda (Akun B lagi nyoba masuk), kick Akun A!
                 if data.action == "KICK" then
                     KeySystem.IsVerified = false
                     game.Players.LocalPlayer:Kick("Key sedang digunakan di Device lain!")
@@ -92,7 +82,6 @@ function KeySystem.StartHeartbeat()
     end)
 end
 
--- Fungsi pembantu buat ngecek sisa waktu (Buat ditampilin di UI)
 function KeySystem.GetTimeLeft()
     if KeySystem.Duration == "Lifetime" then return "Permanent" end
     local sisa = KeySystem.ExpiryTime - os.time()
@@ -283,7 +272,6 @@ SimpleUI.Themes = {
 
 SimpleUI.Themes.DefaultTheme = SimpleUI.Themes.KuliJawa
 
--- Helper frameworks
 do
     SimpleUI.ErrorHandler = {}
     do
@@ -499,7 +487,7 @@ do
         end
     end
 
-    SimpleUI.EventProtection = {} -- Deprecated
+    SimpleUI.EventProtection = {} 
     do
         local ProtectedEvents = {}
         function SimpleUI.EventProtection:Protect(Event)
@@ -4357,7 +4345,7 @@ function SimpleUI:CreateButton(Page, Text, Callback, Options)
     local Zones = self.ComponentBuilder:CreateContainer({
         Parent = Page,
         Layout = "TextLeft",
-        TextWidth = 1, -- Dibikin 1 (100%) karena panahnya udah dihapus
+        TextWidth = 1, 
         MinHeight = 35,
         Padding = HasDescription and {
             Top = self.Constants.Padding.Large,
@@ -4373,7 +4361,7 @@ function SimpleUI:CreateButton(Page, Text, Callback, Options)
         Spacing = HasDescription and self.Constants.Spacing.Tight or 0,
         HasDescription = HasDescription,
         CornerRadius = self.Constants.Corner.Medium,
-        ColorTier = "Tertiary" -- Ubah dari Secondary ke Tertiary
+        ColorTier = "Tertiary" 
     }, Theme)
 
     local Title = self.ComponentBuilder:CreateLabel(Zones.TextZone, Text, Theme, {
@@ -4382,7 +4370,6 @@ function SimpleUI:CreateButton(Page, Text, Callback, Options)
         Order = 1
     })
     
-    -- Bikin Teksnya ada di tengah (Center) kalo ga ada deskripsi biar mirip tombol beneran
     if not HasDescription then
         Title.TextXAlignment = Enum.TextXAlignment.Center
     end
@@ -4391,7 +4378,6 @@ function SimpleUI:CreateButton(Page, Text, Callback, Options)
                             self.ComponentBuilder:CreateDescription(Zones.TextZone, Options.Description, Theme, 2) or
                             nil
 
-    -- 🔥 TAMBAHAN: Bikin garis tepi (Border) biar tombol makin kerasa tegas
     local ButtonStroke = self.Utility:CreateInstance("UIStroke", {
         Color = Theme.Quaternary,
         Thickness = 1.2,
@@ -4401,15 +4387,15 @@ function SimpleUI:CreateButton(Page, Text, Callback, Options)
 
     local ThemeBindings = {
         [Zones.Container] = {
-            BackgroundColor3 = "Tertiary", -- Latar tombol pake warna Tertiary
-            BackgroundTransparency = 0     -- Solid, ga transparan sama sekali
+            BackgroundColor3 = "Tertiary",
+            BackgroundTransparency = 0     
         },
         [Title] = {
             TextColor3 = "TextPrimary",
             Font = "FontSecondary"
         },
         [ButtonStroke] = {
-            Color = "Quaternary" -- Warna border ngikutin tema
+            Color = "Quaternary" 
         }
     }
     if Description then
@@ -4435,7 +4421,6 @@ function SimpleUI:CreateButton(Page, Text, Callback, Options)
             ColorGoal = CurrentTheme.TertiaryPressed
         end
 
-        -- Animasikan perubahan warna background saat di-hover/diklik
         TweenService:Create(Zones.Container, TweenInfo.new(0.15, Enum.EasingStyle.Quad), {
             BackgroundColor3 = ColorGoal
         }):Play()
@@ -4499,7 +4484,6 @@ function SimpleUI:CreateButton(Page, Text, Callback, Options)
             end
         end,
         SetDescription = function(self, NewDescription)
-            -- ... (Sama kayak aslinya)
         end,
         SetCallback = function(self, NewCallback)
             if EH:ValidateType(NewCallback, "function", "NewCallback", "Button:SetCallback") then
@@ -6608,17 +6592,6 @@ function SimpleUI:CreateNotification(Options)
     }
 end
 
-
--- ================= MULAI DIUBAH =================
-
--- -- ================= SATPAM VERCEL LU =================
--- if _G.AuthToken_EggHunter ~= "KuliJawa_M4nt4p_2026" then
---     game.Players.LocalPlayer:Kick("❌ KETAHUAN NYOLONG SCRIPT! Pake Loadernya kocak!")
---     return
--- end
--- -- ====================================================
-
--- ================= TASK MANAGER =================
 local TaskManager = (function()
     local TaskManager = {
         mainTask = nil,
@@ -6726,7 +6699,6 @@ local TaskManager = (function()
     return TaskManager
 end)()
 
--- ================= MODULE: SHOPPING MART =================
 local ShoppingMart = (function()
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
     local Workspace = game:GetService("Workspace")
@@ -6751,19 +6723,18 @@ local ShoppingMart = (function()
 
     local playerGui = getSafeContainer()
 
-    -- 🔥 TEMA KULI JAWA (Dark & Cyan Cyberpunk) 🔥
     local Theme = {
         Background = Color3.fromRGB(15, 20, 30),
         Surface = Color3.fromRGB(30, 35, 45),
         SurfaceAlt = Color3.fromRGB(40, 45, 55),
         TextPrimary = Color3.fromRGB(255, 255, 255),
         TextSecondary = Color3.fromRGB(150, 150, 150),
-        Accent = Color3.fromRGB(0, 200, 200), -- Cyan Kuli Jawa
+        Accent = Color3.fromRGB(0, 200, 200), 
         AccentDark = Color3.fromRGB(0, 150, 150),
         Success = Color3.fromRGB(0, 200, 0),
         Danger = Color3.fromRGB(255, 50, 50),
         Stroke = Color3.fromRGB(0, 255, 255),
-        ShardPrice = Color3.fromRGB(255, 215, 0) -- Emas
+        ShardPrice = Color3.fromRGB(255, 215, 0) 
     }
 
     local NumberFormatter = {}
@@ -7014,7 +6985,6 @@ local ShoppingMart = (function()
         mainFrame.BorderSizePixel = 0
         mainFrame.Parent = screenGui
 
-        -- Tambahin Stroke Pinggiran ala Kuli Jawa UI
         local mainStroke = Instance.new("UIStroke")
         mainStroke.Color = Theme.Stroke
         mainStroke.Thickness = 2
@@ -7126,7 +7096,6 @@ local ShoppingMart = (function()
             self.gui.Enabled = false
         end)
 
-        -- Drag logic
         local UserInputService = game:GetService("UserInputService")
         local dragging, dragStart, startPos = false, nil, nil
 
@@ -7641,13 +7610,11 @@ local ShoppingMart = (function()
     return ShoppingMartClass
 end)()
 
--- ================= PENGECEKAN FINAL =================
 if not TaskManager or not ShoppingMart then
     game.Players.LocalPlayer:Kick("❌ Modul internal gagal diload!")
     return
 end
 
--- ================= MAIN CODE =================
 
 SimpleUI:CreateNotification({
     Title = "Validated!",
@@ -10861,9 +10828,6 @@ end
 
 local AutoFarmModule = {}
 do
-    -- =======================================================
-    -- 1. SISTEM JALAN KAKI (WALK) & TELEPORT
-    -- =======================================================
     function AutoFarmModule.moveToLocation(targetCFrame)
         local completed = false
         local success = false
@@ -10878,12 +10842,10 @@ do
         }
 
         if State.AutoFarm.travelMode == "Walk" then
-            -- [ FITUR BARU: JALAN KAKI BIASA ]
             if Humanoid and HRP then
                 Humanoid:MoveTo(targetObj.Position)
                 
                 local elapsed = 0
-                -- Looping buat ngecek apakah udah nyampe target (Jarak < 5 stud)
                 while elapsed < 20 and (State.AutoFarm.doDig or State.AutoFarm.doWash) do
                     local dist = (HRP.Position - targetObj.Position).Magnitude
                     if dist <= 5 then
@@ -10895,13 +10857,11 @@ do
                     elapsed = elapsed + 0.1
                 end
                 
-                -- Kalo gagal/nyangkut
                 if not success then
-                    Humanoid.MoveDirection = Vector3.new(0,0,0) -- Stop jalan
+                    Humanoid.MoveDirection = Vector3.new(0,0,0)
                 end
             end
         else
-            -- [ TELEPORT NORMAL ]
             Movement.teleportToTarget(targetObj.Position, {
                 Mode = "Standard",
                 OnComplete = function(ok)
@@ -10925,9 +10885,6 @@ do
         return success
     end
 
-    -- =======================================================
-    -- 2. EKSEKUSI ANIMASI (TETAP SAMA)
-    -- =======================================================
     function AutoFarmModule.doAction(actionType, expectedRegion)
         local ok, result = pcall(function()
             local pan = PanModule.equipPan()
@@ -10964,9 +10921,6 @@ do
         return true
     end
 
-    -- =======================================================
-    -- 3. AUTO SELL (TETAP SAMA)
-    -- =======================================================
     function AutoFarmModule.checkAndDoSell()
         if not State.Sell.autoSell then return end
 
@@ -10978,7 +10932,7 @@ do
             if SellModule.sell({}, State.Sell.mode or "Walk") then
                 if State.Sell.farmWaypoint and State.Sell.farmWaypoint ~= "" then
                     WaypointModule.teleport(State.Sell.farmWaypoint)
-                    task.wait(1.5) -- Jeda napas
+                    task.wait(1.5)
                 end
                 
                 local Player = game.Players.LocalPlayer
@@ -10990,9 +10944,6 @@ do
         end
     end
 
-    -- =======================================================
-    -- 4. MASTER LOOP (MANDOR UTAMA)
-    -- =======================================================
     function AutoFarmModule.teardown()
         if State.AutoFarm.locked then
             CharacterLock.unlock()
@@ -11056,9 +11007,6 @@ do
         end)
     end
 
-    -- =======================================================
-    -- 5. KONTROL INDIVIDU (BUAT UI LU NANTI)
-    -- =======================================================
     function AutoFarmModule.startDig()
         if not State.AutoFarm.sandCFrame then
             Utility.createNotification("❌ Unknown Sand Location!")
@@ -11599,7 +11547,6 @@ do
         end)
     end
 end 
--- Treasure Hunter Module
 
 local TreasureHunter = {
     isHunting = false,
@@ -11964,30 +11911,13 @@ local window = SimpleUI:CreateWindow({
 local Tabs = {
     Main = SimpleUI:CreateTab(window, "Main", {
         Description = "Profile and Information",
-        -- Icon = {
-        --     Image = "rbxassetid://10734975692",
-        --     Size = UDim2.new(0, 16, 0, 16),
-        --     ImageColor3 = Color3.fromRGB(255, 255, 255)
-        -- },
     }),
     AutoFarm = SimpleUI:CreateTab(window, "AutoFarming", {
         Description = "Auto Farm and Auto Sell",
-        -- Icon = {
-        --     Image = "rbxassetid://10734975692",
-        --     Size = UDim2.new(0, 16, 0, 16),
-        --     ImageColor3 = Color3.fromRGB(255, 255, 255)
-        -- },
         DualScroll = true
     }),
     Hunting = SimpleUI:CreateTab(window, "Hunting", {
         Description = "Treasure map hunting and geode opening",
-        -- Icon = {
-        --     Image = "rbxassetid://16898613613",
-        --     Size = UDim2.new(0, 16, 0, 16),
-        --     ImageRectSize = Vector2.new(48, 48),
-        --     ImageRectOffset = Vector2.new(306, 771),
-        --     ImageColor3 = Color3.fromRGB(255, 255, 255)
-        -- },
         DualScroll = true
     }),
     ESP = SimpleUI:CreateTab(window, "ESP", {
@@ -11996,82 +11926,37 @@ local Tabs = {
     }),
     Teleport = SimpleUI:CreateTab(window, "Teleport", {
         Description = "Fast travel network, geode locations, and runes",
-        -- Icon = {
-        --     Image = "rbxassetid://16898613777",
-        --     Size = UDim2.new(0, 16, 0, 16),
-        --     ImageRectSize = Vector2.new(48, 48),
-        --     ImageRectOffset = Vector2.new(771, 98),
-        --     ImageColor3 = Color3.fromRGB(255, 255, 255)
-        -- },
         DualScroll = true
     }),
     Tools = SimpleUI:CreateTab(window, "Tools", {
         Description = "Equipment reforging and tool enchantment",
-        -- Icon = {
-        --     Image = "rbxassetid://16898613044",
-        --     Size = UDim2.new(0, 16, 0, 16),
-        --     ImageRectSize = Vector2.new(48, 48),
-        --     ImageRectOffset = Vector2.new(771, 955),
-        --     ImageColor3 = Color3.fromRGB(255, 255, 255)
-        -- },
         DualScroll = true
     }),
     Crafting = SimpleUI:CreateTab(window, "Crafting", {
         Description = "Equipment crafting and resource conversion",
-        -- Icon = {
-        --     Image = "rbxassetid://10723396542",
-        --     ImageColor3 = Color3.fromRGB(255, 255, 255)
-        -- }
     }),
     Favourite = SimpleUI:CreateTab(window, "Favourite", {
         Description = "Favourite valuable items",
-        -- Icon = {
-        --     Image = "rbxassetid://10734966248",
-        --     ImageColor3 = Color3.fromRGB(255, 255, 255)
-        -- }
     }),
     Shop = SimpleUI:CreateTab(window, "Shop", {
         Description = "Amazong - Credits: Jeff Bozo",
-        -- Icon = {
-        --     Image = "rbxassetid://10734952479",
-        --     ImageColor3 = Color3.fromRGB(255, 255, 255)
-        -- }
     }),
     Character = SimpleUI:CreateTab(window, "Character", {
         Description = "Character utilities"
     }),
     Others = SimpleUI:CreateTab(window, "Others", {
         Description = "Excavation sites, environmental barriers, and utilities",
-        -- Icon = {
-        --     Image = "rbxassetid://10734963191",
-        --     ImageColor3 = Color3.fromRGB(255, 255, 255)
-        -- },
         DualScroll = true
     }),
     Servers = SimpleUI:CreateTab(window, "Servers", {
         Description = "Server utilities like rejoin and server hop",
-        -- Icon = {
-        --     Image = "rbxassetid://10734963628",
-        --     ImageColor3 = Color3.fromRGB(255, 255, 255)
-        -- }
         DualScroll = true
     }),
     Settings = SimpleUI:CreateTab(window, "Settings", {
         Description = "Interface customization and control configuration",
-        -- Icon = {
-        --     Image = "rbxassetid://16898613777",
-        --     Size = UDim2.new(0, 16, 0, 16),
-        --     ImageRectSize = Vector2.new(48, 48),
-        --     ImageRectOffset = Vector2.new(771, 257),
-        --     ImageColor3 = Color3.fromRGB(255, 255, 255)
-        -- }
     }),
     Feedback = SimpleUI:CreateTab(window, "Feedback", {
         Description = "Report bugs or suggest features",
-        -- Icon = {
-        --     Image = "rbxassetid://10734966248",
-        --     ImageColor3 = Color3.fromRGB(255, 255, 255)
-        -- }
     })
 }
 
@@ -12124,21 +12009,17 @@ local function initializeMainTab()
             local eSecs = elapsed % 60
             local sessionString = string.format("%02d:%02d:%02d", eHours, eMins, eSecs)
 
-            -- 2. Ambil sisa waktu dari memori
             local sisaWaktu = KeySystem.GetTimeLeft()
 
-            -- 🔥 3. SATPAM ELEGAN (RELOAD SYSTEM) 🔥
             if sisaWaktu == "Expired" then
                 -- 1. Matikan gembok verifikasi & Auto-Farm
                 getgenv().KuliJawa_KeySystem.IsVerified = false
-                _G.KuliJawa_IsFarming = false -- (Wajib: Tambahin variabel global ini di dalem loop auto-farm lu biar berenti)
+                _G.KuliJawa_IsFarming = false
 
-                -- 2. Hapus file Saved Key biar auto-login gagal pas direload
                 if isfile and delfile and isfile("KuliJawa_SavedKey.txt") then
                     delfile("KuliJawa_SavedKey.txt")
                 end
 
-                -- 3. Notifikasi santuy
                 pcall(function() 
                     game:GetService("StarterGui"):SetCore("SendNotification", {
                         Title = "Waktu Kuli Habis!", 
@@ -12147,17 +12028,14 @@ local function initializeMainTab()
                     }) 
                 end)
 
-                -- 4. HANCURKAN UI DASHBOARD
-                -- (Pastiin lu nge-destroy variabel yang nyimpen ScreenGui UI Utama lu)
                 if getgenv().KuliJawa_MainUI then 
                     getgenv().KuliJawa_MainUI:Destroy() 
                 end
 
-                -- 5. LOAD ULANG SCRIPT LOADER/LOGIN UI LU!
                 task.wait(1)
                 loadstring(game:HttpGet("https://raw.githubusercontent.com/KuliJawa-Maker/ojis/refs/heads/main/main.lua"))()
 
-                break -- Berhentiin loop text UI
+                break
             end
 
             ProfileInfo:SetFields({
@@ -12182,13 +12060,10 @@ local function initializeAutoFarmTab()
         TextSize = 18
     })
 
-    -- =========================================================
-    -- 2. BIKIN TEKS BUAT NAMPILIN KOORDINAT
-    -- =========================================================
     local CoordLabel = Instance.new("TextLabel")
     CoordLabel.Size = UDim2.new(1, 0, 0, 25)
     CoordLabel.BackgroundTransparency = 1
-    CoordLabel.TextColor3 = Color3.fromRGB(0, 255, 255) -- Warna Neon Cyan lu
+    CoordLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
     CoordLabel.TextSize = 14
     CoordLabel.Font = Enum.Font.GothamMedium
     CoordLabel.Text = "📍 Dig: Unknown   |   💧 Wash: Unknown"
@@ -12215,9 +12090,6 @@ local function initializeAutoFarmTab()
             State.AutoFarm.travelMode = selection
         end)
 
-    -- =========================================================
-    -- 1. BIKIN KOTAK HORIZONTAL (2 KOLOM)
-    -- =========================================================
     local DualBtnFrame = Instance.new("Frame")
     DualBtnFrame.Name = "DualButtonRow"
     
@@ -12233,9 +12105,6 @@ local function initializeAutoFarmTab()
     RowLayout.VerticalAlignment = Enum.VerticalAlignment.Top 
     RowLayout.Parent = DualBtnFrame
 
-    -- =========================================================
-    -- 3. TOMBOL KIRI (DIG LOCATION)
-    -- =========================================================
     SimpleUI:CreateButton(DualBtnFrame, "Save Dig", function()
         if PanModule.getRegion(HumanoidRootPart) == "Deposit" then
             State.AutoFarm.sandCFrame = HumanoidRootPart.CFrame
@@ -12254,9 +12123,6 @@ local function initializeAutoFarmTab()
         end
     end)
 
-    -- =========================================================
-    -- 4. TOMBOL KANAN (WASH LOCATION)
-    -- =========================================================
     SimpleUI:CreateButton(DualBtnFrame, "Save Wash", function()
         if PanModule.getRegion(HumanoidRootPart) == "Water" then
             State.AutoFarm.waterCFrame = HumanoidRootPart.CFrame
@@ -12275,9 +12141,6 @@ local function initializeAutoFarmTab()
         end
     end)
 
-    -- =========================================================
-    -- 5. HACK RESIZE BIAR TOMBOL JADI SETENGAH (50%)
-    -- =========================================================
     task.spawn(function()
         task.wait(0.1)
         for _, child in ipairs(DualBtnFrame:GetChildren()) do
@@ -13493,7 +13356,7 @@ local function initializeFeedbackTab()
         Utility.createNotification("⏳ Sending your feedback...")
 
         local data = {
-            ["content"] = "", -- Bisa lu isi tag role misal "<@&ROLE_ID>" kalo mau dinotif
+            ["content"] = "",
             ["embeds"] = {{
                 ["title"] = "🐛 New Bug Report / Feedback",
                 ["description"] = "**Pesan:**\n" .. feedbackMessage,

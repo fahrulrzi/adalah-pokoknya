@@ -8,7 +8,6 @@ if not Player then
     Player = Players.LocalPlayer
 end
 
--- 1. CEK GAME ID
 local TargetGameID = 129827112113663
 if game.PlaceId ~= TargetGameID then
     Player:Kick("Game not found! This script is only for the Prospecting game.")
@@ -18,7 +17,6 @@ end
 -- 2. SETUP API VERCEL & LINK KEY
 local WebAPI = "https://key-system-telur.vercel.app/api/verify"
 
--- 🔥 TARUH LINK WEB/STORE LU DI SINI 🔥
 local LinkFree12H = "https://key-system-telur.vercel.app/start" -- Linkvertise lu
 -- local LinkPrem1Month = "https://discord.gg/server-lu-atau-toko-lu" -- Link toko beli bulanan
 -- local LinkPremPerm = "https://discord.gg/server-lu-atau-toko-lu" -- Link toko beli permanen
@@ -33,26 +31,20 @@ local httprequest = (syn and syn.request) or (http and http.request) or http_req
 local KeyFileName = "KuliJawa_SavedKey.txt"
 
 local function CheckSavedKey()
-    -- Cek apakah eksekutor support file system dan filenya ada
     if isfile and readfile and isfile(KeyFileName) then
         local savedKey = readfile(KeyFileName)
         
         if savedKey and savedKey ~= "" then
             print("Mencoba Auto-Login dengan Saved Key...")
             
-            -- Tembak API diem-diem
             local success, res = pcall(function() return httprequest({Url = WebAPI .. "?key=" .. savedKey .. "&hwid=" .. myHwid, Method = "GET"}) end)
             
             if success and res then
                 local bodySuccess, data = pcall(function() return HttpService:JSONDecode(res.Body) end)
                 
-                -- Kalo key di file masih aktif dan valid
                 if bodySuccess and data and data.success == true then
                     local userTier = data.tier or "Free (12H)"
                     
-                    -- ========================================================
-                    -- 🔥 1. PARSING WAKTU + LOG DEBUGGING 🔥
-                    -- ========================================================
                     local expTime = 0
 
                     if data.expiry == "Permanent" then
@@ -66,19 +58,10 @@ local function CheckSavedKey()
                         end
                     end
 
-                    -- Bikin Log buat kita nge-trace bug-nya
-                    print("====================================")
-                    print("🛠️ DEBUG WAKTU KULI JAWA 🛠️")
-                    print("Raw Waktu dari API:", tostring(data.expiry))
-                    print("Current OS Time   :", os.time())
-                    print("Parsed Expiry Time:", expTime)
-                    print("Sisa Detik        :", expTime - os.time())
-                    print("====================================")
-
                     -- Bikin Global Key System
                     getgenv().KuliJawa_KeySystem = {
                         IsVerified = true,
-                        KeyString = savedKey, -- (Atau inputKey kalau di tombol Verify)
+                        KeyString = savedKey,
                         Tier = userTier,
                         ExpiryTime = expTime,
                         Duration = (data.expiry == "Permanent") and "Lifetime" or "Limited",
@@ -93,9 +76,6 @@ local function CheckSavedKey()
                         end
                     }
 
-                    -- ========================================================
-                    -- 🔥 2. HEARTBEAT TANPA KICK (RELOAD SYSTEM) 🔥
-                    -- ========================================================
                     task.spawn(function()
                         while getgenv().KuliJawa_KeySystem.IsVerified do
                             task.wait(60)
@@ -104,21 +84,18 @@ local function CheckSavedKey()
                                     Url = "https://key-system-telur.vercel.app/api/ping",
                                     Method = "POST",
                                     Headers = {["Content-Type"] = "application/json"},
-                                    Body = HttpService:JSONEncode({key = savedKey, hwid = myHwid}) -- (Ubah savedKey jadi inputKey kalo di tombol Verify)
+                                    Body = HttpService:JSONEncode({key = savedKey, hwid = myHwid}) 
                                 })
                                 local pingData = HttpService:JSONDecode(pingRes.Body)
                                 
-                                -- Kalo server API merintahkan KICK (Key dipakai di device lain / expired di DB)
                                 if pingData and pingData.action == "KICK" then
                                     getgenv().KuliJawa_KeySystem.IsVerified = false
-                                    _G.KuliJawa_IsFarming = false -- Matiin fitur auto-farm lu
+                                    _G.KuliJawa_IsFarming = false
                                     
-                                    -- Hapus file saved key biar dia bisa verify ulang
                                     if delfile and isfile(KeyFileName) then 
                                         delfile(KeyFileName) 
                                     end 
                                     
-                                    -- Munculin Notif Santuy
                                     pcall(function() 
                                         game:GetService("StarterGui"):SetCore("SendNotification", {
                                             Title = "Sesi Berakhir", 
@@ -127,13 +104,11 @@ local function CheckSavedKey()
                                         }) 
                                     end)
                                     
-                                    -- Hancurin UI Utama (Pastiin variabel ini bener sesuai di pros.lua lu)
                                     if getgenv().KuliJawa_MainUI then 
                                         getgenv().KuliJawa_MainUI:Destroy() 
                                     end
                                     
                                     task.wait(1)
-                                    -- Load UI Login lagi
                                     loadstring(game:HttpGet("https://raw.githubusercontent.com/KuliJawa-Maker/ojis/refs/heads/main/main.lua"))()
                                 end
                             end)
@@ -142,27 +117,22 @@ local function CheckSavedKey()
                     
                     pcall(function() game:GetService("StarterGui"):SetCore("SendNotification", {Title = "Auto Login Success", Text = "Welcome back! Tier: " .. userTier, Duration = 5}) end)
                     
-                    -- Langsung Panggil Script Utama
                     _G.AuthToken_EggHunter = "KuliJawa_M4nt4p_2026"
-                    loadstring(game:HttpGet("https://raw.githubusercontent.com/fahrulrzi/adalah-pokoknya/refs/heads/main/pros.lua"))()
+                    loadstring(game:HttpGet("https://raw.githubusercontent.com/KuliJawa-Maker/ojis/refs/heads/main/game/129827112113663.lua"))()
                     _G.AuthToken_EggHunter = nil
                     
-                    return true -- Ngabarin kalo Auto-Login Sukses
+                    return true
                 else
-                    -- Kalo Key expired atau gagal, hapus filenya biar user disuruh masukin manual lagi
                     if delfile then delfile(KeyFileName) end
                 end
             end
         end
     end
-    return false -- Kalo file ga ada atau gagal, return false
+    return false 
 end
 
--- ========================================================
--- 🔥 EKSEKUSI AUTO LOGIN SEBELUM MUNCULIN UI 🔥
--- ========================================================
 if CheckSavedKey() then
-    return -- STOP SCRIPT DI SINI! Ga usah nampilin UI Login ke layar
+    return 
 end
 
 -- 3. UI LOGIN ANTI CRASH
@@ -179,7 +149,6 @@ if not uiParent then uiParent = Player:WaitForChild("PlayerGui", 5) end
 if uiParent then ScreenGui.Parent = uiParent else warn("❌ Gagal load UI Login!") return end
 
 local Frame = Instance.new("Frame")
--- 🔥 Kotaknya gw manjangin ke bawah (jadi 280) biar muat 3 tombol 🔥
 Frame.Size = UDim2.new(0, 300, 0, 280) 
 Frame.Position = UDim2.new(0.5, -150, 0.5, -140)
 Frame.BackgroundColor3 = Color3.fromRGB(15, 20, 30)
@@ -237,7 +206,6 @@ KeyInput.Font = Enum.Font.Gotham
 KeyInput.Parent = Frame
 Instance.new("UICorner", KeyInput).CornerRadius = UDim.new(0, 5)
 
--- Tombol Verify gw pindah ke atas tepat di bawah input
 local VerifyBtn = Instance.new("TextButton")
 VerifyBtn.Size = UDim2.new(1, -20, 0, 35)
 VerifyBtn.Position = UDim2.new(0, 10, 0, 85)
@@ -248,7 +216,6 @@ VerifyBtn.Font = Enum.Font.GothamBold
 VerifyBtn.Parent = Frame
 Instance.new("UICorner", VerifyBtn).CornerRadius = UDim.new(0, 5)
 
--- Garis Pembatas / Teks Info
 local InfoLabel = Instance.new("TextLabel")
 InfoLabel.Size = UDim2.new(1, -20, 0, 20)
 InfoLabel.Position = UDim2.new(0, 10, 0, 130)
@@ -259,7 +226,6 @@ InfoLabel.TextSize = 12
 InfoLabel.BackgroundTransparency = 1
 InfoLabel.Parent = Frame
 
--- 🔥 3 TOMBOL PILIHAN KEY 🔥
 local GetFreeBtn = Instance.new("TextButton")
 GetFreeBtn.Size = UDim2.new(1, -20, 0, 30)
 GetFreeBtn.Position = UDim2.new(0, 10, 0, 155)
@@ -271,30 +237,6 @@ GetFreeBtn.TextSize = 12
 GetFreeBtn.Parent = Frame
 Instance.new("UICorner", GetFreeBtn).CornerRadius = UDim.new(0, 4)
 
--- local GetMonthBtn = Instance.new("TextButton")
--- GetMonthBtn.Size = UDim2.new(1, -20, 0, 30)
--- GetMonthBtn.Position = UDim2.new(0, 10, 0, 195)
--- GetMonthBtn.BackgroundColor3 = Color3.fromRGB(180, 120, 30) -- Warna Emas
--- GetMonthBtn.Text = "⭐ GET PREMIUM 1$ (1 MONTH)"
--- GetMonthBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
--- GetMonthBtn.Font = Enum.Font.GothamBold
--- GetMonthBtn.TextSize = 12
--- GetMonthBtn.Parent = Frame
--- Instance.new("UICorner", GetMonthBtn).CornerRadius = UDim.new(0, 4)
-
--- local GetPermBtn = Instance.new("TextButton")
--- GetPermBtn.Size = UDim2.new(1, -20, 0, 30)
--- GetPermBtn.Position = UDim2.new(0, 10, 0, 235)
--- GetPermBtn.BackgroundColor3 = Color3.fromRGB(120, 40, 150) -- Warna Ungu Mewah
--- GetPermBtn.Text = "💎 GET PREMIUM 5$ (PERMANENT)"
--- GetPermBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
--- GetPermBtn.Font = Enum.Font.GothamBold
--- GetPermBtn.TextSize = 12
--- GetPermBtn.Parent = Frame
--- Instance.new("UICorner", GetPermBtn).CornerRadius = UDim.new(0, 4)
-
-
--- 4. LOGIKA TOMBOL
 CloseBtn.MouseButton1Click:Connect(function()
     ScreenGui:Destroy()
 end)
@@ -329,7 +271,6 @@ VerifyBtn.MouseButton1Click:Connect(function()
                 VerifyBtn.Text = "SUCCESS!"
                 VerifyBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
 
-                -- Simpen Key ke file biar besok-besok auto login
                 if writefile then
                     writefile(KeyFileName, inputKey)
                 end
@@ -338,9 +279,8 @@ VerifyBtn.MouseButton1Click:Connect(function()
                 local expTime = 0
 
                 if data.expiry == "Permanent" then
-                    expTime = os.time() + 315360000 -- 10 Tahun (Mewakili permanen)
+                    expTime = os.time() + 315360000
                 else
-                    -- Ini akan otomatis menyesuaikan zona waktu UTC ke Lokal!
                     local dt = DateTime.fromIsoDate(data.expiry)
                     if dt then
                         expTime = dt.UnixTimestamp
@@ -348,17 +288,6 @@ VerifyBtn.MouseButton1Click:Connect(function()
                         warn("⚠️ [KULI JAWA] Gagal parsing ISO Date: " .. tostring(data.expiry))
                     end
                 end
-
-                -- ========================================================
-                -- 🔥 BIKIN LOG DEBUGGING WAKTU DI F9 (CONSOLE) 🔥
-                -- ========================================================
-                print("====================================")
-                print("🛠️ DEBUG WAKTU KULI JAWA (TOMBOL VERIFY) 🛠️")
-                print("Raw Waktu dari API:", tostring(data.expiry))
-                print("Current OS Time   :", os.time())
-                print("Parsed Expiry Time:", expTime)
-                print("Sisa Detik        :", expTime - os.time())
-                print("====================================")
 
                 getgenv().KuliJawa_KeySystem = {
                     IsVerified = true,
@@ -380,12 +309,9 @@ VerifyBtn.MouseButton1Click:Connect(function()
                     end
                 }
 
-                -- ========================================================
-                -- 🔥 2. JALANIN HEARTBEAT PING DI BACKGROUND (RELOAD SYSTEM) 🔥
-                -- ========================================================
                 task.spawn(function()
                     while getgenv().KuliJawa_KeySystem.IsVerified do
-                        task.wait(60) -- Ping tiap 60 detik
+                        task.wait(60)
                         pcall(function()
                             local pingRes = httprequest({
                                 Url = "https://key-system-telur.vercel.app/api/ping",
@@ -395,12 +321,10 @@ VerifyBtn.MouseButton1Click:Connect(function()
                             })
                             local pingData = HttpService:JSONDecode(pingRes.Body)
                             
-                            -- Kalo server API nolak (Key dipake di device lain/expired)
                             if pingData and pingData.action == "KICK" then
                                 getgenv().KuliJawa_KeySystem.IsVerified = false
-                                _G.KuliJawa_IsFarming = false -- Matiin fitur auto-farm
+                                _G.KuliJawa_IsFarming = false 
                                 
-                                -- Hapus file saved key
                                 if isfile and delfile and isfile(KeyFileName) then 
                                     delfile(KeyFileName) 
                                 end
@@ -414,22 +338,18 @@ VerifyBtn.MouseButton1Click:Connect(function()
                                     }) 
                                 end)
                                 
-                                -- Hancurkan UI Utama
                                 if getgenv().KuliJawa_MainUI then 
                                     getgenv().KuliJawa_MainUI:Destroy() 
                                 end
                                 
                                 task.wait(1)
                                 -- Load UI Login lagi
-                                loadstring(game:HttpGet("https://raw.githubusercontent.com/fahrulrzi/adalah-pokoknya/refs/heads/main/key.lua"))()
+                                loadstring(game:HttpGet("https://raw.githubusercontent.com/KuliJawa-Maker/ojis/refs/heads/main/main.lua"))()
                             end
                         end)
                     end
                 end)
                 
-                -- ========================================================
-                -- 🔥 3. LOAD MAIN SCRIPT 🔥
-                -- ========================================================
                 pcall(function() game:GetService("StarterGui"):SetCore("SendNotification", {Title = "Access Granted", Text = "Welcome! Your tier is : " .. userTier, Duration = 5}) end)
                 
                 task.wait(1)
@@ -437,7 +357,7 @@ VerifyBtn.MouseButton1Click:Connect(function()
                 
                 -- SALAMAN RAHASIA & PANGGIL SCRIPT UTAMA
                 _G.AuthToken_EggHunter = "KuliJawa_M4nt4p_2026"
-                loadstring(game:HttpGet("https://raw.githubusercontent.com/fahrulrzi/adalah-pokoknya/refs/heads/main/pros.lua"))()
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/KuliJawa-Maker/ojis/refs/heads/main/game/129827112113663.lua"))()
                 _G.AuthToken_EggHunter = nil
             else
                 VerifyBtn.Text = "VERIFY KEY"
