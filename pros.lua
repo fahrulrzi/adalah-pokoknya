@@ -11885,7 +11885,7 @@ do
     end)
 end
 
-local amazong = ShoppingMart.new(SimpleUI.Utility:IsMobile() and 0.5 or 0.90)
+local amazong = ShoppingMart.new(SimpleUI.Utility:IsMobile() and 0.3 or 0.5)
 
 local window = SimpleUI:CreateWindow({
     Brand = {
